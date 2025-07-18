@@ -378,11 +378,11 @@
         term.writeln("1. \x1B[1mFINITE DOMAIN\x1B[0m: The 'forall' quantifier is ALWAYS restricted to a known set.");
         term.writeln("2. \x1B[1mRELEVANT IMPLICATION\x1B[0m: The system exclusively uses a stricter, multi-layered implication.");
         term.writeln("");
-        term.writeln("\x1B[1;33m--- Available Commands ---\x1B[0m");
-        term.writeln("\x1B[1mdomain add <ObjectName>\x1B[0m                     - Adds an object to the finite universe.");
-        term.writeln("\x1B[1mfact <ObjectName> <predicateName>\x1B[0m            - Defines an atomic predicate as true for an object.");
-        term.writeln("\x1B[1mquery <ObjectName> <Expression>?\x1B[0m            - Evaluates a complex expression for a specific object.");
-        term.writeln("\x1B[1mcheck forall <Expression>?\x1B[0m                  - Evaluates if an expression is true for all objects in the domain.");
+        term.writeln("\x1B[1;33m--- Available Commands (without <>) ---\x1B[0m");
+        term.writeln("\x1B[1mdomain add ObjectName\x1B[0m                     - Adds an object to the finite universe.");
+        term.writeln("\x1B[1mfact ObjectName predicateName\x1B[0m            - Defines an atomic predicate as true for an object.");
+        term.writeln("\x1B[1mquery ObjectName Expression?\x1B[0m            - Evaluates a complex expression for a specific object.");
+        term.writeln("\x1B[1mcheck forall Expression?\x1B[0m                  - Evaluates if an expression is true for all objects in the domain.");
         term.writeln("\x1B[1mstate\x1B[0m                                       - Shows the current state of all objects and their facts.");
         term.writeln("\x1B[1mhelp\x1B[0m                                        - Shows this help message.");
         term.writeln("\x1B[1mexit\x1B[0m                                        - Exits the program (closes this terminal).");
@@ -432,7 +432,7 @@
                 universe.addObject(new DomainObject(parts[2]));
                 term.writeln(`Object '${parts[2]}' added to the domain.`);
               } else {
-                term.writeln("\x1B[1;31mError: Invalid 'domain' command. Use: domain add <ObjectName>\x1B[0m");
+                term.writeln("\x1B[1;31mError: Invalid 'domain' command. Use: domain add ObjectName\x1B[0m");
               }
               break;
             case "fact":
@@ -445,12 +445,12 @@
                   term.writeln(`\x1B[1;31mError: Object '${parts[1]}' not found.\x1B[0m`);
                 }
               } else {
-                term.writeln("\x1B[1;31mError: Invalid 'fact' command. Use: fact <ObjectName> <predicateName>\x1B[0m");
+                term.writeln("\x1B[1;31mError: Invalid 'fact' command. Use: fact ObjectName predicateName\x1B[0m");
               }
               break;
             case "query": {
               if (parts.length < 3) {
-                term.writeln("\x1B[1;31mError: Invalid 'query' command. Use: query <ObjectName> <Expression>?\x1B[0m");
+                term.writeln("\x1B[1;31mError: Invalid 'query' command. Use: query ObjectName Expression?\x1B[0m");
                 return;
               }
               const obj = universe.getObject(parts[1]);
@@ -473,13 +473,21 @@
               break;
             }
             case "check": {
-              if (parts.length < 3 || parts[1].toLowerCase() !== "forall") {
-                term.writeln("\x1B[1;31mError: Invalid 'check' command. Use: check forall <Expression>?\x1B[0m");
+              let expressionTokens;
+              if (parts.length >= 3 && parts[1].toLowerCase() === "forall") {
+                expressionTokens = parts.slice(2);
+              } else if (parts.length >= 4 && parts[1].toLowerCase() === "for" && parts[2].toLowerCase() === "all") {
+                expressionTokens = parts.slice(3);
+              } else {
+                term.writeln("\x1B[1;31mError: Invalid 'check' command. Use: check forall Expression?\x1B[0m");
                 return;
               }
-              const exprTokens = parts.slice(2);
-              cleanExpressionTokens(exprTokens);
-              const expression = ExpressionParser.parse(exprTokens);
+              if (expressionTokens.length === 0) {
+                term.writeln("\x1B[1;31mError: Missing expression for 'check forall' command.\x1B[0m");
+                return;
+              }
+              cleanExpressionTokens(expressionTokens);
+              const expression = ExpressionParser.parse(expressionTokens);
               const result = universe.checkForAll(expression);
               term.writeln(`Result for ALL objects: \x1B[1;${result ? "32mTRUE" : "31mFALSE"}\x1B[0m`);
               break;

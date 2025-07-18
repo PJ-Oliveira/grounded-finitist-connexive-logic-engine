@@ -1,4 +1,4 @@
-// main.ts - Final Version with Simplified Syntax (No Spaces in Predicates)
+// main.ts - Final version with corrected help text and error messages
 
 // These are globals provided by the xterm.js library scripts loaded in index.html
 declare const Terminal: any;
@@ -49,12 +49,11 @@ function printHelp() {
     term.writeln("1. \x1b[1mFINITE DOMAIN\x1b[0m: The 'forall' quantifier is ALWAYS restricted to a known set.");
     term.writeln("2. \x1b[1mRELEVANT IMPLICATION\x1b[0m: The system exclusively uses a stricter, multi-layered implication.");
     term.writeln("");
-    term.writeln("\x1b[1;33m--- Available Commands ---\x1b[0m");
-    term.writeln("\x1b[1mdomain add <ObjectName>\x1b[0m                     - Adds an object to the finite universe.");
-    // UPDATED to remove quotes from <predicate>
-    term.writeln("\x1b[1mfact <ObjectName> <predicateName>\x1b[0m            - Defines an atomic predicate as true for an object.");
-    term.writeln("\x1b[1mquery <ObjectName> <Expression>?\x1b[0m            - Evaluates a complex expression for a specific object.");
-    term.writeln("\x1b[1mcheck forall <Expression>?\x1b[0m                  - Evaluates if an expression is true for all objects in the domain.");
+    term.writeln("\x1b[1;33m--- Available Commands (without <>) ---\x1b[0m");
+    term.writeln("\x1b[1mdomain add ObjectName\x1b[0m                     - Adds an object to the finite universe.");
+    term.writeln("\x1b[1mfact ObjectName predicateName\x1b[0m            - Defines an atomic predicate as true for an object.");
+    term.writeln("\x1b[1mquery ObjectName Expression?\x1b[0m            - Evaluates a complex expression for a specific object.");
+    term.writeln("\x1b[1mcheck forall Expression?\x1b[0m                  - Evaluates if an expression is true for all objects in the domain.");
     term.writeln("\x1b[1mstate\x1b[0m                                       - Shows the current state of all objects and their facts.");
     term.writeln("\x1b[1mhelp\x1b[0m                                        - Shows this help message.");
     term.writeln("\x1b[1mexit\x1b[0m                                        - Exits the program (closes this terminal).");
@@ -62,20 +61,17 @@ function printHelp() {
     term.writeln("");
     term.writeln("\x1b[1;33m--- Expression Syntax ---\x1b[0m");
     term.writeln("Use parentheses \x1b[1m()\x1b[0m for grouping.");
-    // UPDATED to reflect the new no-space rule for predicates
     term.writeln("Predicates: \x1b[1misMortal\x1b[0m, \x1b[1mis_human\x1b[0m, etc. (must be single words, no spaces).");
     term.writeln("Operators (by precedence): \x1b[1mNOT > AND > OR > RELEVANTLY_IMPLIES\x1b[0m.");
     term.writeln("  \x1b[1mRELEVANTLY_IMPLIES\x1b[0m: A stricter implication.");
     term.writeln("");
-    // UPDATED with a new example using the simplified syntax
     term.writeln("\x1b[1mExample\x1b[0m: query socrates ( isHuman AND isGreek ) RELEVANTLY_IMPLIES isHuman ?");
     term.writeln("--------------------------------------------------------------------------");
 }
 
 function parseCommandLine(input: string): string[] {
     const tokens: string[] = [];
-    // This regex still handles quotes if used, but the main syntax will not require them.
-    const regex = /"([^"]*)"|\S+/g; 
+    const regex = /"([^"]*)"|\S+/g;
     let match;
     while ((match = regex.exec(input)) !== null) {
         tokens.push(match[1] || match[0]);
@@ -110,7 +106,7 @@ function handleCommand(line: string): void {
                     universe.addObject(new DomainObject(parts[2]));
                     term.writeln(`Object '${parts[2]}' added to the domain.`);
                 } else {
-                    term.writeln("\x1b[1;31mError: Invalid 'domain' command. Use: domain add <ObjectName>\x1b[0m");
+                    term.writeln("\x1b[1;31mError: Invalid 'domain' command. Use: domain add ObjectName\x1b[0m");
                 }
                 break;
             case 'fact':
@@ -123,12 +119,12 @@ function handleCommand(line: string): void {
                         term.writeln(`\x1b[1;31mError: Object '${parts[1]}' not found.\x1b[0m`);
                     }
                 } else {
-                    term.writeln("\x1b[1;31mError: Invalid 'fact' command. Use: fact <ObjectName> <predicateName>\x1b[0m");
+                    term.writeln("\x1b[1;31mError: Invalid 'fact' command. Use: fact ObjectName predicateName\x1b[0m");
                 }
                 break;
             case 'query': {
                 if (parts.length < 3) {
-                    term.writeln("\x1b[1;31mError: Invalid 'query' command. Use: query <ObjectName> <Expression>?\x1b[0m");
+                    term.writeln("\x1b[1;31mError: Invalid 'query' command. Use: query ObjectName Expression?\x1b[0m");
                     return;
                 }
                 const obj = universe.getObject(parts[1]);
@@ -151,13 +147,23 @@ function handleCommand(line: string): void {
                 break;
             }
             case 'check': {
-                if (parts.length < 3 || parts[1].toLowerCase() !== 'forall') {
-                    term.writeln("\x1b[1;31mError: Invalid 'check' command. Use: check forall <Expression>?\x1b[0m");
+                let expressionTokens;
+                if (parts.length >= 3 && parts[1].toLowerCase() === 'forall') {
+                    expressionTokens = parts.slice(2);
+                } else if (parts.length >= 4 && parts[1].toLowerCase() === 'for' && parts[2].toLowerCase() === 'all') {
+                    expressionTokens = parts.slice(3);
+                } else {
+                    term.writeln("\x1b[1;31mError: Invalid 'check' command. Use: check forall Expression?\x1b[0m");
                     return;
                 }
-                const exprTokens = parts.slice(2);
-                cleanExpressionTokens(exprTokens);
-                const expression = ExpressionParser.parse(exprTokens);
+
+                if (expressionTokens.length === 0) {
+                    term.writeln("\x1b[1;31mError: Missing expression for 'check forall' command.\x1b[0m");
+                    return;
+                }
+                
+                cleanExpressionTokens(expressionTokens);
+                const expression = ExpressionParser.parse(expressionTokens);
                 const result = universe.checkForAll(expression);
                 term.writeln(`Result for ALL objects: \x1b[1;${result ? '32mTRUE' : '31mFALSE'}\x1b[0m`);
                 break;
@@ -189,8 +195,6 @@ term.write(PROMPT_STRING);
 
 const PROMPT_VISIBLE_LENGTH = PROMPT_STRING.replace(/[\u001b\u009b][[()#;?]?[0-9]{1,4}(?:;[0-9]{0,4})*[0-9A-ORZcf-nqry=><]/g, '').length;
 
-// Final stable implementation:
-// Use a single `onKey` handler and inspect the event to decide the action.
 term.onKey(({ key, domEvent }: { key: string; domEvent: KeyboardEvent }) => {
     
     const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
@@ -234,8 +238,6 @@ term.onKey(({ key, domEvent }: { key: string; domEvent: KeyboardEvent }) => {
             currentLine = "";
         }
     } else if (printable && domEvent.key.length === 1) {
-        // This handles normal characters, including spaces.
-        // Copy-paste is also handled character by character here.
         currentLine += domEvent.key;
         term.write(domEvent.key);
     }

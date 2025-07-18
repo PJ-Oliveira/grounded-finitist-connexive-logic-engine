@@ -1,0 +1,11 @@
+# Ficheiro .gitignore
+
+# Dependências
+node_modules
+
+# Pasta de build gerada localmente
+/dist
+
+# Ficheiros de log e de ambiente
+npm-debug.log
+.DS_Store

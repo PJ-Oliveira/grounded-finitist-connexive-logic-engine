@@ -4,16 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "clean": "rm -rf deploy",
-  "build": "npm run clean && esbuild src/main.ts --bundle --outfile=deploy/bundle.js && cp index.html style.css config.json deploy/",
-  "start": "npm run build && serve deploy",
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
+    "build": "esbuild src/main.ts --bundle --outfile=docs/bundle.js --platform=browser && copyfiles -u 1 index.html style.css docs",
+    "start": "npm run build && serve deploy",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "copyfiles": "^2.4.1",
     "esbuild": "^0.25.6",
     "typescript": "^5.8.3",
     "xterm": "^5.3.0",

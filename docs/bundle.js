@@ -292,15 +292,17 @@
     return token.toUpperCase() in PRECEDENCE;
   }
   function applyOperator(values, operator) {
-    if (operator === "NOT") {
-      if (values.length < 1) throw new Error("Invalid syntax for NOT operator.");
-      values.push(new Not(values.pop()));
+    const op = operator.toUpperCase();
+    if (op === "NOT") {
+      if (values.length < 1) throw new Error(`Invalid syntax for NOT operator.`);
+      const operand = values.pop();
+      values.push(new Not(operand));
       return;
     }
-    if (values.length < 2) throw new Error(`Invalid syntax for binary operator ${operator}`);
+    if (values.length < 2) throw new Error(`Invalid syntax for binary operator ${op}`);
     const right = values.pop();
     const left = values.pop();
-    switch (operator) {
+    switch (op) {
       case "AND":
         values.push(new And(left, right));
         break;
@@ -311,16 +313,20 @@
         values.push(new RelevantImplication(left, right));
         break;
       default:
-        throw new Error(`Unknown operator: ${operator}`);
+        throw new Error(`Unknown operator: ${op}`);
     }
   }
   function parse(tokens) {
+    if (tokens.length === 0) {
+      throw new Error("Cannot parse an empty expression.");
+    }
     const values = [];
     const operators = [];
     for (const token of tokens) {
       const upperToken = token.toUpperCase();
       if (isOperator(upperToken)) {
-        while (operators.length > 0 && isOperator(operators[operators.length - 1]) && PRECEDENCE[operators[operators.length - 1].toUpperCase()] >= PRECEDENCE[upperToken]) {
+        while (operators.length > 0 && operators[operators.length - 1] !== "(" && // Don't pop parentheses
+        PRECEDENCE[operators[operators.length - 1]] >= PRECEDENCE[upperToken]) {
           applyOperator(values, operators.pop());
         }
         operators.push(upperToken);
@@ -330,17 +336,24 @@
         while (operators.length > 0 && operators[operators.length - 1] !== "(") {
           applyOperator(values, operators.pop());
         }
-        if (operators.length === 0) throw new Error("Mismatched parentheses.");
+        if (operators.length === 0) {
+          throw new Error("Mismatched parentheses: no matching '(' found.");
+        }
         operators.pop();
       } else {
         values.push(new Predicate(token));
       }
     }
     while (operators.length > 0) {
-      if (operators[operators.length - 1] === "(") throw new Error("Mismatched parentheses.");
-      applyOperator(values, operators.pop());
+      const operator = operators.pop();
+      if (operator === "(") {
+        throw new Error("Mismatched parentheses: remaining '(' on stack.");
+      }
+      applyOperator(values, operator);
     }
-    if (values.length !== 1) throw new Error("Invalid expression syntax.");
+    if (values.length !== 1) {
+      throw new Error("Invalid expression syntax: check operators and operands.");
+    }
     return values[0];
   }
   var PRECEDENCE, ExpressionParser;

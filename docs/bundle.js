@@ -355,7 +355,10 @@
           foreground: "#e0e0e0",
           cursor: "#e0e0e0",
           selectionBackground: "#555"
-        }
+        },
+        // This setting prevents the default browser action for keys like F1, F5, etc.
+        // It can sometimes help with input consistency.
+        cancelEvents: true
       });
       var fitAddon = new FitAddon.FitAddon();
       term.loadAddon(fitAddon);
@@ -365,6 +368,7 @@
       var universe = new Domain();
       var commandHistory = [];
       var historyIndex = -1;
+      var currentLine = "";
       function printWelcomeMessage() {
         term.writeln("--- Grounded Finitist Connexive Logic Engine (TypeScript/Web Edition) ---");
         term.writeln("Type 'help' for commands or 'exit' to quit.");
@@ -390,10 +394,7 @@
         term.writeln("Use parentheses \x1B[1m()\x1B[0m for grouping.");
         term.writeln('Predicates: \x1B[1m"is mortal"\x1B[0m, etc. (use quotes for multi-word predicates).');
         term.writeln("Operators (by precedence): \x1B[1mNOT > AND > OR > RELEVANTLY_IMPLIES\x1B[0m.");
-        term.writeln("  \x1B[1mRELEVANTLY_IMPLIES\x1B[0m: A stricter implication that is true if and only if:");
-        term.writeln("                     a) The classical condition (!P || Q) is true, AND");
-        term.writeln("                     b) P and Q share at least one atomic predicate (relevance), AND");
-        term.writeln("                     c) The structure is coherent (passes Connexive checks).");
+        term.writeln("  \x1B[1mRELEVANTLY_IMPLIES\x1B[0m: A stricter implication.");
         term.writeln("");
         term.writeln('\x1B[1mExample\x1B[0m: query socrates ( "is human" AND "is greek" ) RELEVANTLY_IMPLIES "is human" ?');
         term.writeln("--------------------------------------------------------------------------");
@@ -507,61 +508,49 @@
       }
       printWelcomeMessage();
       term.write(PROMPT_STRING);
-      var currentLine = "";
       var PROMPT_VISIBLE_LENGTH = PROMPT_STRING.replace(/[\u001b\u009b][[()#;?]?[0-9]{1,4}(?:;[0-9]{0,4})*[0-9A-ORZcf-nqry=><]/g, "").length;
-      term.onData((data) => {
-        currentLine += data;
-        term.write(data);
-      });
       term.onKey(({ key, domEvent }) => {
-        switch (key) {
-          case "Enter":
-            term.writeln("");
-            if (currentLine.trim()) {
-              if (commandHistory[0] !== currentLine) {
-                commandHistory.unshift(currentLine);
-              }
-              handleCommand(currentLine);
+        const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
+        if (domEvent.key === "Enter") {
+          term.writeln("");
+          if (currentLine.trim()) {
+            if (commandHistory[0] !== currentLine) {
+              commandHistory.unshift(currentLine);
             }
+            handleCommand(currentLine);
+          }
+          historyIndex = -1;
+          currentLine = "";
+          term.write(PROMPT_STRING);
+        } else if (domEvent.key === "Backspace") {
+          if (term.buffer.active.cursorX > PROMPT_VISIBLE_LENGTH) {
+            currentLine = currentLine.slice(0, -1);
+            term.write("\b \b");
+          }
+        } else if (domEvent.key === "ArrowUp") {
+          if (historyIndex < commandHistory.length - 1) {
+            historyIndex++;
+            const clearLine = "\x1B[2K\r" + PROMPT_STRING;
+            term.write(clearLine);
+            currentLine = commandHistory[historyIndex];
+            term.write(currentLine);
+          }
+        } else if (domEvent.key === "ArrowDown") {
+          if (historyIndex > 0) {
+            historyIndex--;
+            const clearLine = "\x1B[2K\r" + PROMPT_STRING;
+            term.write(clearLine);
+            currentLine = commandHistory[historyIndex];
+            term.write(currentLine);
+          } else {
             historyIndex = -1;
+            const clearLine = "\x1B[2K\r" + PROMPT_STRING;
+            term.write(clearLine);
             currentLine = "";
-            term.write(PROMPT_STRING);
-            break;
-          case "Backspace":
-            if (term.buffer.active.cursorX > PROMPT_VISIBLE_LENGTH) {
-              currentLine = currentLine.slice(0, -1);
-              term.write("\b \b");
-            }
-            break;
-          case "ArrowUp":
-            if (historyIndex < commandHistory.length - 1) {
-              historyIndex++;
-              const clearLine = "\x1B[2K\r" + PROMPT_STRING;
-              term.write(clearLine);
-              currentLine = commandHistory[historyIndex];
-              term.write(currentLine);
-            }
-            break;
-          case "ArrowDown":
-            if (historyIndex > 0) {
-              historyIndex--;
-              const clearLine = "\x1B[2K\r" + PROMPT_STRING;
-              term.write(clearLine);
-              currentLine = commandHistory[historyIndex];
-              term.write(currentLine);
-            } else {
-              historyIndex = -1;
-              const clearLine = "\x1B[2K\r" + PROMPT_STRING;
-              term.write(clearLine);
-              currentLine = "";
-            }
-            break;
-          // Left and right arrows don't need custom logic here,
-          // as we are not implementing mid-line editing.
-          // We intentionally do nothing to prevent them from printing text.
-          case "ArrowLeft":
-          case "ArrowRight":
-            break;
+          }
+        } else if (printable && domEvent.key.length === 1) {
+          currentLine += domEvent.key;
+          term.write(domEvent.key);
         }
       });
     }

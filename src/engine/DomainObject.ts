@@ -11,6 +11,14 @@ export class DomainObject {
         // Implements the Closed-World Assumption.
         return this.predicateStates.get(predicateName.toLowerCase()) || false;
     }
+
+    /**
+     * NEW METHOD: Gets the raw state of a predicate (true, false, or undefined if not set).
+     * This is used to detect when the Closed-World Assumption is being applied.
+     */
+    getRawPredicateState(predicateName: string): boolean | undefined {
+        return this.predicateStates.get(predicateName.toLowerCase());
+    }
     
     toString(): string {
         const states = Array.from(this.predicateStates.entries())

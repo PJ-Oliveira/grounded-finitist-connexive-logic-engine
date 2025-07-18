@@ -30,11 +30,14 @@
         }
         checkForAll(expression) {
           if (this.objects.size === 0) {
-            return false;
+            const reason = `
+  \x1B[36m[Heuristic: Rejection of Vacuous Truth]\x1B[0m The result is FALSE because the domain of objects is empty. Universal claims about nothing are not considered true in this logic.`;
+            return { value: false, reason };
           }
-          return Array.from(this.objects).every(
+          const result = Array.from(this.objects).every(
             (obj) => expression.evaluate(obj).value
           );
+          return { value: result };
         }
         toString() {
           if (this.objects.size === 0) {
@@ -63,6 +66,13 @@
         }
         checkPredicate(predicateName) {
           return this.predicateStates.get(predicateName.toLowerCase()) || false;
+        }
+        /**
+         * NEW METHOD: Gets the raw state of a predicate (true, false, or undefined if not set).
+         * This is used to detect when the Closed-World Assumption is being applied.
+         */
+        getRawPredicateState(predicateName) {
+          return this.predicateStates.get(predicateName.toLowerCase());
         }
         toString() {
           const states = Array.from(this.predicateStates.entries()).map(([key, value]) => `${key}=${value}`).join(", ");
@@ -97,8 +107,13 @@
           this.name = name;
         }
         evaluate(object) {
-          const value = object.checkPredicate(this.name);
-          const explanation = `Fact '${this.name}' is ${value ? "TRUE" : "FALSE"} for object '${object.name}'`;
+          const rawValue = object.getRawPredicateState(this.name);
+          const value = rawValue === void 0 ? false : rawValue;
+          let explanation = `Fact '${this.name}' is ${value ? "TRUE" : "FALSE"} for object '${object.name}'`;
+          if (rawValue === void 0) {
+            explanation += `
+  \x1B[36m[Heuristic: Closed-World Assumption]\x1B[0m The fact was not explicitly set to TRUE, so it is assumed to be FALSE. Classical logic might consider its truth value 'unknown'.`;
+          }
           return new EvaluationResult(value, explanation);
         }
         getAtomicPredicates() {
@@ -226,13 +241,8 @@
           const antecedentResult = this.antecedent.evaluate(object);
           const consequentResult = this.consequent.evaluate(object);
           const classicalTruth = !antecedentResult.value || consequentResult.value;
-          if (!classicalTruth) {
-            const reason2 = `Failed classical implication check: !(antecedent:${antecedentResult.value}) || (consequent:${consequentResult.value})`;
-            return new EvaluationResult(false, reason2);
-          }
           const antecedentPredicates = this.antecedent.getAtomicPredicates();
           const consequentPredicates = this.consequent.getAtomicPredicates();
-          const intersection = new Set([...antecedentPredicates].filter((p) => consequentPredicates.has(p)));
           const isRelevant = [...consequentPredicates].every(
             (predicate) => antecedentPredicates.has(predicate)
           );
@@ -243,10 +253,23 @@
               isAristotleCoherent = false;
             }
           }
-          const oppositeClassicalTruth = !antecedentResult.value || !consequentResult.value;
+          const oppositeConsequentResult = new Not(this.consequent).evaluate(object);
+          const oppositeClassicalTruth = !antecedentResult.value || oppositeConsequentResult.value;
           const isBoethiusViolation = classicalTruth && oppositeClassicalTruth;
           const finalValue = classicalTruth && isRelevant && isAristotleCoherent && !isBoethiusViolation;
-          const reason = `Classical: ${classicalTruth}, Relevant: ${isRelevant}, Aristotle Coherent: ${isAristotleCoherent}, Boethius Coherent: ${!isBoethiusViolation} -> Final: ${finalValue}`;
+          let reason = `Classical: ${classicalTruth}, Relevant: ${isRelevant}, Aristotle Coherent: ${isAristotleCoherent}, Boethius Coherent: ${!isBoethiusViolation} -> Final: ${finalValue}`;
+          if (!isRelevant) {
+            reason += `
+  \x1B[36m[Heuristic: Relevance Logic]\x1B[0m Implication failed. The consequent cannot introduce new topics (predicates) that were not present in the antecedent.`;
+          }
+          if (!isAristotleCoherent) {
+            reason += `
+  \x1B[36m[Heuristic: Connexive Logic (Aristotle's Thesis)]\x1B[0m Implication failed. A proposition cannot be implied by its own negation (form: NOT P -> P).`;
+          }
+          if (isBoethiusViolation) {
+            reason += `
+  \x1B[36m[Heuristic: Connexive Logic (Boethius's Thesis)]\x1B[0m Implication failed. An antecedent cannot imply both a proposition and its negation (form: (A -> C) and (A -> NOT C)).`;
+          }
           return new EvaluationResult(finalValue, reason);
         }
         getAtomicPredicates() {
@@ -489,7 +512,10 @@
               cleanExpressionTokens(expressionTokens);
               const expression = ExpressionParser.parse(expressionTokens);
               const result = universe.checkForAll(expression);
-              term.writeln(`Result for ALL objects: \x1B[1;${result ? "32mTRUE" : "31mFALSE"}\x1B[0m`);
+              term.writeln(`Result for ALL objects: \x1B[1;${result.value ? "32mTRUE" : "31mFALSE"}\x1B[0m`);
+              if (result.reason) {
+                term.writeln(result.reason);
+              }
               break;
             }
             case "state":

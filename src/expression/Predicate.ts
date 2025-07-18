@@ -5,8 +5,16 @@ export class Predicate implements Expression {
     constructor(public readonly name: string) {}
 
     evaluate(object: DomainObject): EvaluationResult {
-        const value = object.checkPredicate(this.name);
-        const explanation = `Fact '${this.name}' is ${value ? "TRUE" : "FALSE"} for object '${object.name}'`;
+        const rawValue = object.getRawPredicateState(this.name);
+        const value = rawValue === undefined ? false : rawValue;
+
+        let explanation = `Fact '${this.name}' is ${value ? "TRUE" : "FALSE"} for object '${object.name}'`;
+
+        // HEURISTIC: Add explanation for the Closed-World Assumption.
+        if (rawValue === undefined) {
+            explanation += `\n  \x1b[36m[Heuristic: Closed-World Assumption]\x1b[0m The fact was not explicitly set to TRUE, so it is assumed to be FALSE. Classical logic might consider its truth value 'unknown'.`;
+        }
+
         return new EvaluationResult(value, explanation);
     }
 

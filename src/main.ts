@@ -165,7 +165,10 @@ function handleCommand(line: string): void {
                 cleanExpressionTokens(expressionTokens);
                 const expression = ExpressionParser.parse(expressionTokens);
                 const result = universe.checkForAll(expression);
-                term.writeln(`Result for ALL objects: \x1b[1;${result ? '32mTRUE' : '31mFALSE'}\x1b[0m`);
+                term.writeln(`Result for ALL objects: \x1b[1;${result.value ? '32mTRUE' : '31mFALSE'}\x1b[0m`);
+                if (result.reason) {
+                    term.writeln(result.reason);
+                }
                 break;
             }
             case 'state':

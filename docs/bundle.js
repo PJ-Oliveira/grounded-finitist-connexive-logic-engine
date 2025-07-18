@@ -317,16 +317,13 @@
     }
   }
   function parse(tokens) {
-    if (tokens.length === 0) {
-      throw new Error("Cannot parse an empty expression.");
-    }
+    if (tokens.length === 0) throw new Error("Cannot parse an empty expression.");
     const values = [];
     const operators = [];
     for (const token of tokens) {
       const upperToken = token.toUpperCase();
       if (isOperator(upperToken)) {
-        while (operators.length > 0 && operators[operators.length - 1] !== "(" && // Don't pop parentheses
-        PRECEDENCE[operators[operators.length - 1]] >= PRECEDENCE[upperToken]) {
+        while (operators.length > 0 && operators[operators.length - 1] !== "(" && PRECEDENCE[operators[operators.length - 1]] >= PRECEDENCE[upperToken]) {
           applyOperator(values, operators.pop());
         }
         operators.push(upperToken);
@@ -336,9 +333,7 @@
         while (operators.length > 0 && operators[operators.length - 1] !== "(") {
           applyOperator(values, operators.pop());
         }
-        if (operators.length === 0) {
-          throw new Error("Mismatched parentheses: no matching '(' found.");
-        }
+        if (operators.length === 0) throw new Error("Mismatched parentheses: no matching '(' found.");
         operators.pop();
       } else {
         values.push(new Predicate(token));
@@ -346,14 +341,10 @@
     }
     while (operators.length > 0) {
       const operator = operators.pop();
-      if (operator === "(") {
-        throw new Error("Mismatched parentheses: remaining '(' on stack.");
-      }
+      if (operator === "(") throw new Error("Mismatched parentheses: remaining '(' on stack.");
       applyOperator(values, operator);
     }
-    if (values.length !== 1) {
-      throw new Error("Invalid expression syntax: check operators and operands.");
-    }
+    if (values.length !== 1) throw new Error("Invalid expression syntax: check operators and operands.");
     return values[0];
   }
   var PRECEDENCE, ExpressionParser;
@@ -457,9 +448,7 @@
       }
       function handleCommand(line) {
         const parts = parseCommandLine(line);
-        if (parts.length === 0) {
-          return;
-        }
+        if (parts.length === 0) return;
         const command = parts[0].toLowerCase();
         try {
           switch (command) {

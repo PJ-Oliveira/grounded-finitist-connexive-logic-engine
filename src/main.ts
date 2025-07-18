@@ -1,5 +1,3 @@
-// main.ts - Final version with corrected help text and error messages
-
 // These are globals provided by the xterm.js library scripts loaded in index.html
 declare const Terminal: any;
 declare const FitAddon: any;
@@ -36,7 +34,6 @@ let historyIndex = -1;
 let currentLine = "";
 
 // --- Helper Functions ---
-
 function printWelcomeMessage() {
     term.writeln("--- Grounded Finitist Connexive Logic Engine (TypeScript/Web Edition) ---");
     term.writeln("Type 'help' for commands or 'exit' to quit.");
@@ -95,9 +92,7 @@ function cleanExpressionTokens(tokens: string[]): void {
 
 function handleCommand(line: string): void {
     const parts = parseCommandLine(line);
-    if (parts.length === 0) {
-        return;
-    }
+    if (parts.length === 0) return;
     const command = parts[0].toLowerCase();
     try {
         switch (command) {
@@ -156,15 +151,14 @@ function handleCommand(line: string): void {
                     term.writeln("\x1b[1;31mError: Invalid 'check' command. Use: check forall Expression?\x1b[0m");
                     return;
                 }
-
                 if (expressionTokens.length === 0) {
                     term.writeln("\x1b[1;31mError: Missing expression for 'check forall' command.\x1b[0m");
                     return;
                 }
-                
                 cleanExpressionTokens(expressionTokens);
                 const expression = ExpressionParser.parse(expressionTokens);
                 const result = universe.checkForAll(expression);
+                // Updated to handle the object returned by checkForAll
                 term.writeln(`Result for ALL objects: \x1b[1;${result.value ? '32mTRUE' : '31mFALSE'}\x1b[0m`);
                 if (result.reason) {
                     term.writeln(result.reason);
@@ -213,7 +207,6 @@ term.onKey(({ key, domEvent }: { key: string; domEvent: KeyboardEvent }) => {
         historyIndex = -1;
         currentLine = "";
         term.write(PROMPT_STRING);
-
     } else if (domEvent.key === 'Backspace') {
         if (term.buffer.active.cursorX > PROMPT_VISIBLE_LENGTH) {
             currentLine = currentLine.slice(0, -1);

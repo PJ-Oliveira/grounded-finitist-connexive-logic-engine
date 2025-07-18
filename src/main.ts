@@ -228,7 +228,7 @@ term.onKey(({ key, domEvent }: { key: string; domEvent: KeyboardEvent }) => {
             }
             break;
         default:
-            if (printable) {
+            if (printable && key.length === 1) {
                 currentLine += key;
                 term.write(key);
             }

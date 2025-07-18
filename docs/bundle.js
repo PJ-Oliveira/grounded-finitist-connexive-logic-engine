@@ -356,8 +356,6 @@
           cursor: "#e0e0e0",
           selectionBackground: "#555"
         },
-        // This setting prevents the default browser action for keys like F1, F5, etc.
-        // It can sometimes help with input consistency.
         cancelEvents: true
       });
       var fitAddon = new FitAddon.FitAddon();
@@ -382,7 +380,7 @@
         term.writeln("");
         term.writeln("\x1B[1;33m--- Available Commands ---\x1B[0m");
         term.writeln("\x1B[1mdomain add <ObjectName>\x1B[0m                     - Adds an object to the finite universe.");
-        term.writeln('\x1B[1mfact <ObjectName> "<predicate>"\x1B[0m             - Defines an atomic predicate as true for an object.');
+        term.writeln("\x1B[1mfact <ObjectName> <predicateName>\x1B[0m            - Defines an atomic predicate as true for an object.");
         term.writeln("\x1B[1mquery <ObjectName> <Expression>?\x1B[0m            - Evaluates a complex expression for a specific object.");
         term.writeln("\x1B[1mcheck forall <Expression>?\x1B[0m                  - Evaluates if an expression is true for all objects in the domain.");
         term.writeln("\x1B[1mstate\x1B[0m                                       - Shows the current state of all objects and their facts.");
@@ -392,11 +390,11 @@
         term.writeln("");
         term.writeln("\x1B[1;33m--- Expression Syntax ---\x1B[0m");
         term.writeln("Use parentheses \x1B[1m()\x1B[0m for grouping.");
-        term.writeln('Predicates: \x1B[1m"is mortal"\x1B[0m, etc. (use quotes for multi-word predicates).');
+        term.writeln("Predicates: \x1B[1misMortal\x1B[0m, \x1B[1mis_human\x1B[0m, etc. (must be single words, no spaces).");
         term.writeln("Operators (by precedence): \x1B[1mNOT > AND > OR > RELEVANTLY_IMPLIES\x1B[0m.");
         term.writeln("  \x1B[1mRELEVANTLY_IMPLIES\x1B[0m: A stricter implication.");
         term.writeln("");
-        term.writeln('\x1B[1mExample\x1B[0m: query socrates ( "is human" AND "is greek" ) RELEVANTLY_IMPLIES "is human" ?');
+        term.writeln("\x1B[1mExample\x1B[0m: query socrates ( isHuman AND isGreek ) RELEVANTLY_IMPLIES isHuman ?");
         term.writeln("--------------------------------------------------------------------------");
       }
       function parseCommandLine(input) {
@@ -447,7 +445,7 @@
                   term.writeln(`\x1B[1;31mError: Object '${parts[1]}' not found.\x1B[0m`);
                 }
               } else {
-                term.writeln(`\x1B[1;31mError: Invalid 'fact' command. Use: fact <ObjectName> "<predicate>"\x1B[0m`);
+                term.writeln("\x1B[1;31mError: Invalid 'fact' command. Use: fact <ObjectName> <predicateName>\x1B[0m");
               }
               break;
             case "query": {

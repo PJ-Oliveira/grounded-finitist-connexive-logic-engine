@@ -1,4 +1,4 @@
-// main.ts - Final Stable Version
+// main.ts - Final Version with Simplified Syntax (No Spaces in Predicates)
 
 // These are globals provided by the xterm.js library scripts loaded in index.html
 declare const Terminal: any;
@@ -21,8 +21,6 @@ const term = new Terminal({
         cursor: '#e0e0e0',
         selectionBackground: '#555'
     },
-    // This setting prevents the default browser action for keys like F1, F5, etc.
-    // It can sometimes help with input consistency.
     cancelEvents: true 
 });
 const fitAddon = new FitAddon.FitAddon();
@@ -53,7 +51,8 @@ function printHelp() {
     term.writeln("");
     term.writeln("\x1b[1;33m--- Available Commands ---\x1b[0m");
     term.writeln("\x1b[1mdomain add <ObjectName>\x1b[0m                     - Adds an object to the finite universe.");
-    term.writeln("\x1b[1mfact <ObjectName> \"<predicate>\"\x1b[0m             - Defines an atomic predicate as true for an object.");
+    // UPDATED to remove quotes from <predicate>
+    term.writeln("\x1b[1mfact <ObjectName> <predicateName>\x1b[0m            - Defines an atomic predicate as true for an object.");
     term.writeln("\x1b[1mquery <ObjectName> <Expression>?\x1b[0m            - Evaluates a complex expression for a specific object.");
     term.writeln("\x1b[1mcheck forall <Expression>?\x1b[0m                  - Evaluates if an expression is true for all objects in the domain.");
     term.writeln("\x1b[1mstate\x1b[0m                                       - Shows the current state of all objects and their facts.");
@@ -63,17 +62,20 @@ function printHelp() {
     term.writeln("");
     term.writeln("\x1b[1;33m--- Expression Syntax ---\x1b[0m");
     term.writeln("Use parentheses \x1b[1m()\x1b[0m for grouping.");
-    term.writeln("Predicates: \x1b[1m\"is mortal\"\x1b[0m, etc. (use quotes for multi-word predicates).");
+    // UPDATED to reflect the new no-space rule for predicates
+    term.writeln("Predicates: \x1b[1misMortal\x1b[0m, \x1b[1mis_human\x1b[0m, etc. (must be single words, no spaces).");
     term.writeln("Operators (by precedence): \x1b[1mNOT > AND > OR > RELEVANTLY_IMPLIES\x1b[0m.");
     term.writeln("  \x1b[1mRELEVANTLY_IMPLIES\x1b[0m: A stricter implication.");
     term.writeln("");
-    term.writeln("\x1b[1mExample\x1b[0m: query socrates ( \"is human\" AND \"is greek\" ) RELEVANTLY_IMPLIES \"is human\" ?");
+    // UPDATED with a new example using the simplified syntax
+    term.writeln("\x1b[1mExample\x1b[0m: query socrates ( isHuman AND isGreek ) RELEVANTLY_IMPLIES isHuman ?");
     term.writeln("--------------------------------------------------------------------------");
 }
 
 function parseCommandLine(input: string): string[] {
     const tokens: string[] = [];
-    const regex = /"([^"]*)"|\S+/g;
+    // This regex still handles quotes if used, but the main syntax will not require them.
+    const regex = /"([^"]*)"|\S+/g; 
     let match;
     while ((match = regex.exec(input)) !== null) {
         tokens.push(match[1] || match[0]);
@@ -121,7 +123,7 @@ function handleCommand(line: string): void {
                         term.writeln(`\x1b[1;31mError: Object '${parts[1]}' not found.\x1b[0m`);
                     }
                 } else {
-                    term.writeln("\x1b[1;31mError: Invalid 'fact' command. Use: fact <ObjectName> \"<predicate>\"\x1b[0m");
+                    term.writeln("\x1b[1;31mError: Invalid 'fact' command. Use: fact <ObjectName> <predicateName>\x1b[0m");
                 }
                 break;
             case 'query': {
@@ -187,12 +189,10 @@ term.write(PROMPT_STRING);
 
 const PROMPT_VISIBLE_LENGTH = PROMPT_STRING.replace(/[\u001b\u009b][[()#;?]?[0-9]{1,4}(?:;[0-9]{0,4})*[0-9A-ORZcf-nqry=><]/g, '').length;
 
-// FINAL ROBUST IMPLEMENTATION:
+// Final stable implementation:
 // Use a single `onKey` handler and inspect the event to decide the action.
-// This avoids race conditions between onData and onKey.
 term.onKey(({ key, domEvent }: { key: string; domEvent: KeyboardEvent }) => {
     
-    // Use `domEvent.key` as it's the most reliable source.
     const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
 
     if (domEvent.key === 'Enter') {
@@ -234,7 +234,8 @@ term.onKey(({ key, domEvent }: { key: string; domEvent: KeyboardEvent }) => {
             currentLine = "";
         }
     } else if (printable && domEvent.key.length === 1) {
-        // This is a normal character, including spaces and quotes.
+        // This handles normal characters, including spaces.
+        // Copy-paste is also handled character by character here.
         currentLine += domEvent.key;
         term.write(domEvent.key);
     }

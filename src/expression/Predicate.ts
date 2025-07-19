@@ -12,7 +12,7 @@ export class Predicate implements Expression {
 
         // HEURISTIC: Add explanation for the Closed-World Assumption.
         if (rawValue === undefined) {
-            explanation += `\n  \x1b[36m[Heuristic: Closed-World Assumption]\x1b[0m The fact was not explicitly set to TRUE, so it is assumed to be FALSE. Classical logic might consider its truth value 'unknown'.`;
+            explanation += `\n\n\x1b[36m[Heuristic: Closed-World Assumption]\x1b[0m The fact was not explicitly set to TRUE, so it is assumed to be FALSE. Classical logic might consider its truth value 'unknown'.`;
         }
 
         return new EvaluationResult(value, explanation);

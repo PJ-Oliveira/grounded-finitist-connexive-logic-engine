@@ -20,7 +20,7 @@ export class Domain {
     checkForAll(expression: Expression): { value: boolean, reason?: string } {
         if (this.objects.size === 0) {
             // HEURISTIC: Rejection of Vacuous Truth
-            const reason = `\n  \x1b[36m[Heuristic: Rejection of Vacuous Truth]\x1b[0m The result is FALSE because the domain of objects is empty. Universal claims about nothing are not considered true in this logic.`;
+            const reason = `\n\n\x1b[36m[Heuristic: Rejection of Vacuous Truth]\x1b[0m The result is FALSE because the domain of objects is empty. Universal claims about nothing are not considered true in this logic.`;
             return { value: false, reason: reason };
         }
         const result = Array.from(this.objects).every(

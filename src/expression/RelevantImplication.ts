@@ -39,16 +39,18 @@ export class RelevantImplication implements Expression {
 
         // HEURISTIC: Add explanations for failures.
         if (!isRelevant) {
-            reason += `\n  \x1b[36m[Heuristic: Relevance Logic]\x1b[0m Implication failed. The consequent cannot introduce new topics (predicates) that were not present in the antecedent.`;
+            reason += `\n\n\x1b[36m[Heuristic: Relevance Logic]\x1b[0m Implication failed. The consequent cannot introduce new topics (predicates) that were not present in the antecedent.`;
         }
         if (!isAristotleCoherent) {
-            reason += `\n  \x1b[36m[Heuristic: Connexive Logic (Aristotle's Thesis)]\x1b[0m Implication failed. A proposition cannot be implied by its own negation (form: NOT P -> P).`;
+            reason += `\n\n\x1b[36m[Heuristic: Connexive Logic (Aristotle's Thesis)]\x1b[0m Implication failed. A proposition cannot be implied by its own negation (form: NOT P -> P).`;
         }
         if (isBoethiusViolation) {
-             reason += `\n  \x1b[36m[Heuristic: Connexive Logic (Boethius's Thesis)]\x1b[0m Implication failed. An antecedent cannot imply both a proposition and its negation (form: (A -> C) and (A -> NOT C)).`;
+             reason += `\n\n\x1b[36m[Heuristic: Connexive Logic (Boethius's Thesis)]\x1b[0m Implication failed. An antecedent cannot imply both a proposition and its negation (form: (A -> C) and (A -> NOT C)).`;
         }
 
-        return new EvaluationResult(finalValue, reason);
+        const isNonClassicalResult = finalValue !== classicalTruth;
+
+        return new EvaluationResult(finalValue, reason, isNonClassicalResult, classicalTruth);
     }
 
     getAtomicPredicates(): Set<string> {

@@ -147,8 +147,18 @@ function handleCommand(line: string): void {
                     term.writeln("\x1b[1;36m==================== QUERY RESULT ====================\x1b[0m");
                     term.writeln(`\x1b[1mExpression:\x1b[0m ${expression.toTreeString()}`);
                     term.writeln(`\x1b[1mFor Object:\x1b[0m ${obj.name}`);
-                    term.writeln(`\x1b[1mFinal Result:\x1b[0m \x1b[1;${result.value ? '32mTRUE' : '31mFALSE'}\x1b[0m`);
+                    let resultOutput = `\x1b[1;${result.value ? '32mTRUE' : '31mFALSE'}\x1b[0m`; // Default format
+                    if (result.isNonClassical) {
+                        const finalLabel = result.value ? 'TRUE' : 'FALSE';
+                        const classicalLabel = result.classicalValue ? 'TRUE' : 'FALSE';
+                        // Custom format for non-classical results
+                        resultOutput = `\x1b[1;33mNON-CLASSICALLY ${finalLabel}\x1b[0m (classically, the result would be ${classicalLabel})`;
+                    }
+                    term.writeln(`\x1b[1mFinal Result:\x1b[0m ${resultOutput}`);
+                    // --- End of new logic ---
+
                     term.writeln("\x1b[1;36m-------------------- Derivation --------------------\x1b[0m");
+
                     term.writeln(result.explanation);
                     term.writeln("\x1b[1;36m====================================================\x1b[0m");
                 } else {

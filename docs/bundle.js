@@ -31,7 +31,8 @@
         checkForAll(expression) {
           if (this.objects.size === 0) {
             const reason = `
-  \x1B[36m[Heuristic: Rejection of Vacuous Truth]\x1B[0m The result is FALSE because the domain of objects is empty. Universal claims about nothing are not considered true in this logic.`;
+
+\x1B[36m[Heuristic: Rejection of Vacuous Truth]\x1B[0m The result is FALSE because the domain of objects is empty. Universal claims about nothing are not considered true in this logic.`;
             return { value: false, reason };
           }
           const result = Array.from(this.objects).every(
@@ -88,9 +89,11 @@
     "src/common/types.ts"() {
       "use strict";
       EvaluationResult = class {
-        constructor(value, explanation) {
+        constructor(value, explanation, isNonClassical = false, classicalValue) {
           this.value = value;
           this.explanation = explanation;
+          this.isNonClassical = isNonClassical;
+          this.classicalValue = classicalValue;
         }
       };
     }
@@ -112,7 +115,8 @@
           let explanation = `Fact '${this.name}' is ${value ? "TRUE" : "FALSE"} for object '${object.name}'`;
           if (rawValue === void 0) {
             explanation += `
-  \x1B[36m[Heuristic: Closed-World Assumption]\x1B[0m The fact was not explicitly set to TRUE, so it is assumed to be FALSE. Classical logic might consider its truth value 'unknown'.`;
+
+\x1B[36m[Heuristic: Closed-World Assumption]\x1B[0m The fact was not explicitly set to TRUE, so it is assumed to be FALSE. Classical logic might consider its truth value 'unknown'.`;
           }
           return new EvaluationResult(value, explanation);
         }
@@ -260,17 +264,21 @@
           let reason = `Classical: ${classicalTruth}, Relevant: ${isRelevant}, Aristotle Coherent: ${isAristotleCoherent}, Boethius Coherent: ${!isBoethiusViolation} -> Final: ${finalValue}`;
           if (!isRelevant) {
             reason += `
-  \x1B[36m[Heuristic: Relevance Logic]\x1B[0m Implication failed. The consequent cannot introduce new topics (predicates) that were not present in the antecedent.`;
+
+\x1B[36m[Heuristic: Relevance Logic]\x1B[0m Implication failed. The consequent cannot introduce new topics (predicates) that were not present in the antecedent.`;
           }
           if (!isAristotleCoherent) {
             reason += `
-  \x1B[36m[Heuristic: Connexive Logic (Aristotle's Thesis)]\x1B[0m Implication failed. A proposition cannot be implied by its own negation (form: NOT P -> P).`;
+
+\x1B[36m[Heuristic: Connexive Logic (Aristotle's Thesis)]\x1B[0m Implication failed. A proposition cannot be implied by its own negation (form: NOT P -> P).`;
           }
           if (isBoethiusViolation) {
             reason += `
-  \x1B[36m[Heuristic: Connexive Logic (Boethius's Thesis)]\x1B[0m Implication failed. An antecedent cannot imply both a proposition and its negation (form: (A -> C) and (A -> NOT C)).`;
+
+\x1B[36m[Heuristic: Connexive Logic (Boethius's Thesis)]\x1B[0m Implication failed. An antecedent cannot imply both a proposition and its negation (form: (A -> C) and (A -> NOT C)).`;
           }
-          return new EvaluationResult(finalValue, reason);
+          const isNonClassicalResult = finalValue !== classicalTruth;
+          return new EvaluationResult(finalValue, reason, isNonClassicalResult, classicalTruth);
         }
         getAtomicPredicates() {
           const combined = new Set(this.antecedent.getAtomicPredicates());
@@ -559,7 +567,13 @@ Processing token: %c'${token}'`,
                 term.writeln("\x1B[1;36m==================== QUERY RESULT ====================\x1B[0m");
                 term.writeln(`\x1B[1mExpression:\x1B[0m ${expression.toTreeString()}`);
                 term.writeln(`\x1B[1mFor Object:\x1B[0m ${obj.name}`);
-                term.writeln(`\x1B[1mFinal Result:\x1B[0m \x1B[1;${result.value ? "32mTRUE" : "31mFALSE"}\x1B[0m`);
+                let resultOutput = `\x1B[1;${result.value ? "32mTRUE" : "31mFALSE"}\x1B[0m`;
+                if (result.isNonClassical) {
+                  const finalLabel = result.value ? "TRUE" : "FALSE";
+                  const classicalLabel = result.classicalValue ? "TRUE" : "FALSE";
+                  resultOutput = `\x1B[1;33mNON-CLASSICALLY ${finalLabel}\x1B[0m (classically, the result would be ${classicalLabel})`;
+                }
+                term.writeln(`\x1B[1mFinal Result:\x1B[0m ${resultOutput}`);
                 term.writeln("\x1B[1;36m-------------------- Derivation --------------------\x1B[0m");
                 term.writeln(result.explanation);
                 term.writeln("\x1B[1;36m====================================================\x1B[0m");

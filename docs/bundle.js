@@ -459,73 +459,45 @@ Processing token: %c'${token}'`,
       var historyIndex = -1;
       var currentLine = "";
       function printWelcomeMessage() {
-        term.writeln(
-          "--- Grounded Finitist Connexive Logic Engine (TypeScript/Web Edition) ---"
-        );
+        term.writeln("--- Grounded Finitist Connexive Logic Engine (TypeScript/Web Edition) ---");
         term.writeln("Type 'help' for commands or 'exit' to quit.");
-        term.writeln(
-          "--------------------------------------------------------------------------"
-        );
+        term.writeln("--------------------------------------------------------------------------");
       }
       function printHelp() {
         term.writeln("");
         term.writeln("\x1B[1;33m--- Core Principles ---\x1B[0m");
-        term.writeln(
-          "1. \x1B[1mFINITE DOMAIN\x1B[0m: The 'forall' quantifier is ALWAYS restricted to a known set."
-        );
-        term.writeln(
-          "2. \x1B[1mRELEVANT IMPLICATION\x1B[0m: The system exclusively uses a stricter, multi-layered implication."
-        );
+        term.writeln("1. \x1B[1mFINITE DOMAIN\x1B[0m: The 'forall' quantifier is ALWAYS restricted to a known set.");
+        term.writeln("2. \x1B[1mRELEVANT IMPLICATION\x1B[0m: The system exclusively uses a stricter, multi-layered implication.");
         term.writeln("");
         term.writeln("\x1B[1;33m--- Available Commands (without <>) ---\x1B[0m");
-        term.writeln(
-          "\x1B[1mdomain add ObjectName\x1B[0m                     - Adds an object to the finite universe."
-        );
-        term.writeln(
-          "\x1B[1mfact ObjectName predicateName\x1B[0m            - Defines an atomic predicate as true for an object."
-        );
-        term.writeln(
-          "\x1B[1mquery ObjectName Expression?\x1B[0m            - Evaluates a complex expression for a specific object."
-        );
-        term.writeln(
-          "\x1B[1mcheck forall Expression?\x1B[0m                  - Evaluates if an expression is true for all objects in the domain."
-        );
-        term.writeln(
-          "\x1B[1mstate\x1B[0m                                       - Shows the current state of all objects and their facts."
-        );
-        term.writeln(
-          "\x1B[1mhelp\x1B[0m                                        - Shows this help message."
-        );
-        term.writeln(
-          "\x1B[1mexit\x1B[0m                                        - Exits the program (closes this terminal)."
-        );
-        term.writeln(
-          "\x1B[1mclear\x1B[0m                                       - Clears the terminal screen."
-        );
+        term.writeln("\x1B[1mdomain add ObjectName\x1B[0m                     - Adds an object to the finite universe.");
+        term.writeln("\x1B[1mfact ObjectName predicateName\x1B[0m            - Defines an atomic predicate as true for an object.");
+        term.writeln("\x1B[1mquery ObjectName Expression?\x1B[0m            - Evaluates a complex expression for a specific object.");
+        term.writeln("\x1B[1mcheck forall Expression?\x1B[0m                  - Evaluates if an expression is true for all objects in the domain.");
+        term.writeln("\x1B[1mstate\x1B[0m                                       - Shows the current state of all objects and their facts.");
+        term.writeln("\x1B[1mhelp\x1B[0m                                        - Shows this help message.");
+        term.writeln("\x1B[1mexit\x1B[0m                                        - Exits the program (closes this terminal).");
+        term.writeln("\x1B[1mclear\x1B[0m                                       - Clears the terminal screen.");
         term.writeln("");
         term.writeln("\x1B[1;33m--- Expression Syntax ---\x1B[0m");
         term.writeln("Use parentheses \x1B[1m()\x1B[0m for grouping.");
-        term.writeln(
-          "Predicates: \x1B[1misMortal\x1B[0m, \x1B[1mis_human\x1B[0m, etc. (must be single words, no spaces)."
-        );
-        term.writeln(
-          "Operators (by precedence): \x1B[1mNOT > AND > OR > RELEVANTLY_IMPLIES\x1B[0m."
-        );
+        term.writeln("Predicates: \x1B[1misMortal\x1B[0m, \x1B[1mis_human\x1B[0m, etc. (must be single words, no spaces).");
+        term.writeln("Operators (by precedence): \x1B[1mNOT > AND > OR > RELEVANTLY_IMPLIES\x1B[0m.");
         term.writeln("  \x1B[1mRELEVANTLY_IMPLIES\x1B[0m: A stricter implication.");
         term.writeln("");
-        term.writeln(
-          "\x1B[1mExample\x1B[0m: query socrates ( isHuman AND isGreek ) RELEVANTLY_IMPLIES isHuman ?"
-        );
-        term.writeln(
-          "--------------------------------------------------------------------------"
-        );
+        term.writeln("\x1B[1mExample\x1B[0m: query socrates ( isHuman AND isGreek ) RELEVANTLY_IMPLIES isHuman ?");
+        term.writeln("--------------------------------------------------------------------------");
       }
       function parseCommandLine(input) {
+        const spacedInput = input.replace(/\(/g, " ( ").replace(/\)/g, " ) ");
         const tokens = [];
         const regex = /"([^"]*)"|\S+/g;
         let match;
-        while ((match = regex.exec(input)) !== null) {
-          tokens.push(match[1] || match[0]);
+        while ((match = regex.exec(spacedInput)) !== null) {
+          const token = (match[1] || match[0]).trim();
+          if (token) {
+            tokens.push(token);
+          }
         }
         return tokens;
       }
@@ -544,7 +516,9 @@ Processing token: %c'${token}'`,
       }
       function handleCommand(line) {
         const parts = parseCommandLine(line);
-        if (parts.length === 0) return;
+        if (parts.length === 0) {
+          return;
+        }
         const command = parts[0].toLowerCase();
         try {
           switch (command) {
@@ -553,9 +527,7 @@ Processing token: %c'${token}'`,
                 universe.addObject(new DomainObject(parts[2]));
                 term.writeln(`Object '${parts[2]}' added to the domain.`);
               } else {
-                term.writeln(
-                  "\x1B[1;31mError: Invalid 'domain' command. Use: domain add ObjectName\x1B[0m"
-                );
+                term.writeln("\x1B[1;31mError: Invalid 'domain' command. Use: domain add ObjectName\x1B[0m");
               }
               break;
             case "fact":
@@ -565,21 +537,15 @@ Processing token: %c'${token}'`,
                   obj.setPredicateState(parts[2], true);
                   term.writeln(`Fact defined: ${obj.name} -> '${parts[2]}' is true.`);
                 } else {
-                  term.writeln(
-                    `\x1B[1;31mError: Object '${parts[1]}' not found.\x1B[0m`
-                  );
+                  term.writeln(`\x1B[1;31mError: Object '${parts[1]}' not found.\x1B[0m`);
                 }
               } else {
-                term.writeln(
-                  "\x1B[1;31mError: Invalid 'fact' command. Use: fact ObjectName predicateName\x1B[0m"
-                );
+                term.writeln("\x1B[1;31mError: Invalid 'fact' command. Use: fact ObjectName predicateName\x1B[0m");
               }
               break;
             case "query": {
               if (parts.length < 3) {
-                term.writeln(
-                  "\x1B[1;31mError: Invalid 'query' command. Use: query ObjectName Expression?\x1B[0m"
-                );
+                term.writeln("\x1B[1;31mError: Invalid 'query' command. Use: query ObjectName Expression?\x1B[0m");
                 return;
               }
               const obj = universe.getObject(parts[1]);
@@ -589,27 +555,15 @@ Processing token: %c'${token}'`,
                 const expression = ExpressionParser.parse(exprTokens);
                 const result = expression.evaluate(obj);
                 term.writeln("");
-                term.writeln(
-                  "\x1B[1;36m==================== QUERY RESULT ====================\x1B[0m"
-                );
-                term.writeln(
-                  `\x1B[1mExpression:\x1B[0m ${expression.toTreeString()}`
-                );
+                term.writeln("\x1B[1;36m==================== QUERY RESULT ====================\x1B[0m");
+                term.writeln(`\x1B[1mExpression:\x1B[0m ${expression.toTreeString()}`);
                 term.writeln(`\x1B[1mFor Object:\x1B[0m ${obj.name}`);
-                term.writeln(
-                  `\x1B[1mFinal Result:\x1B[0m \x1B[1;${result.value ? "32mTRUE" : "31mFALSE"}\x1B[0m`
-                );
-                term.writeln(
-                  "\x1B[1;36m-------------------- Derivation --------------------\x1B[0m"
-                );
+                term.writeln(`\x1B[1mFinal Result:\x1B[0m \x1B[1;${result.value ? "32mTRUE" : "31mFALSE"}\x1B[0m`);
+                term.writeln("\x1B[1;36m-------------------- Derivation --------------------\x1B[0m");
                 term.writeln(result.explanation);
-                term.writeln(
-                  "\x1B[1;36m====================================================\x1B[0m"
-                );
+                term.writeln("\x1B[1;36m====================================================\x1B[0m");
               } else {
-                term.writeln(
-                  `\x1B[1;31mError: Object '${parts[1]}' not found.\x1B[0m`
-                );
+                term.writeln(`\x1B[1;31mError: Object '${parts[1]}' not found.\x1B[0m`);
               }
               break;
             }
@@ -620,23 +574,17 @@ Processing token: %c'${token}'`,
               } else if (parts.length >= 4 && parts[1].toLowerCase() === "for" && parts[2].toLowerCase() === "all") {
                 expressionTokens = parts.slice(3);
               } else {
-                term.writeln(
-                  "\x1B[1;31mError: Invalid 'check' command. Use: check forall Expression?\x1B[0m"
-                );
+                term.writeln("\x1B[1;31mError: Invalid 'check' command. Use: check forall Expression?\x1B[0m");
                 return;
               }
               if (expressionTokens.length === 0) {
-                term.writeln(
-                  "\x1B[1;31mError: Missing expression for 'check forall' command.\x1B[0m"
-                );
+                term.writeln("\x1B[1;31mError: Missing expression for 'check forall' command.\x1B[0m");
                 return;
               }
               cleanExpressionTokens(expressionTokens);
               const expression = ExpressionParser.parse(expressionTokens);
               const result = universe.checkForAll(expression);
-              term.writeln(
-                `Result for ALL objects: \x1B[1;${result.value ? "32mTRUE" : "31mFALSE"}\x1B[0m`
-              );
+              term.writeln(`Result for ALL objects: \x1B[1;${result.value ? "32mTRUE" : "31mFALSE"}\x1B[0m`);
               if (result.reason) {
                 term.writeln(result.reason);
               }
@@ -655,27 +603,8 @@ Processing token: %c'${token}'`,
             case "clear":
               term.clear();
               break;
-            case "debugparse": {
-              term.writeln("\x1B[1;33m--- Running Parser in Debug Mode ---\x1B[0m");
-              term.writeln(
-                "Check the browser's developer console (F12) for detailed output."
-              );
-              const exprTokens = parts.slice(1);
-              cleanExpressionTokens(exprTokens);
-              try {
-                const expression = ExpressionParser.parse(exprTokens);
-                term.writeln(
-                  `\x1B[1;32mParsing Successful.\x1B[0m Root node: ${expression.toTreeString()}`
-                );
-              } catch (e) {
-                term.writeln(`\x1B[1;31mParsing Failed:\x1B[0m ${e.message}`);
-              }
-              break;
-            }
             default:
-              term.writeln(
-                `\x1B[1;31mUnknown command: '${command}'. Type 'help' for a list of commands.\x1B[0m`
-              );
+              term.writeln(`\x1B[1;31mUnknown command: '${command}'. Type 'help' for a list of commands.\x1B[0m`);
           }
         } catch (e) {
           term.writeln(`\x1B[1;31mError: ${e.message}\x1B[0m`);
@@ -683,10 +612,7 @@ Processing token: %c'${token}'`,
       }
       printWelcomeMessage();
       term.write(PROMPT_STRING);
-      var PROMPT_VISIBLE_LENGTH = PROMPT_STRING.replace(
-        /[\u001b\u009b][[()#;?]?[0-9]{1,4}(?:;[0-9]{0,4})*[0-9A-ORZcf-nqry=><]/g,
-        ""
-      ).length;
+      var PROMPT_VISIBLE_LENGTH = PROMPT_STRING.replace(/[\u001b\u009b][[()#;?]?[0-9]{1,4}(?:;[0-9]{0,4})*[0-9A-ORZcf-nqry=><]/g, "").length;
       term.onKey(({ key, domEvent }) => {
         const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
         if (domEvent.key === "Enter") {

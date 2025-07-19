@@ -15,6 +15,7 @@ const term = new Terminal({
     cursorBlink: true,
     fontFamily: "'Fira Code', monospace",
     fontSize: 14,
+    wordWrap: true,
     theme: {
         background: '#1e1e1e',
         foreground: '#e0e0e0',

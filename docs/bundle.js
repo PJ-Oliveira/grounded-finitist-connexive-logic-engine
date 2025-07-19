@@ -293,15 +293,28 @@
   }
   function applyOperator(values, operator) {
     const op = operator.toUpperCase();
+    console.log(
+      `%cApplying operator: ${op}`,
+      "color: #FFC300; font-weight: bold;"
+    );
     if (op === "NOT") {
-      if (values.length < 1) throw new Error(`Invalid syntax for NOT operator.`);
-      const operand = values.pop();
-      values.push(new Not(operand));
+      if (values.length < 1)
+        throw new Error(`INVALID STATE: Not enough values for NOT operator.`);
+      console.log(
+        "  - Popping operand for NOT:",
+        values[values.length - 1]?.toTreeString()
+      );
+      values.push(new Not(values.pop()));
       return;
     }
-    if (values.length < 2) throw new Error(`Invalid syntax for binary operator ${op}`);
+    if (values.length < 2)
+      throw new Error(
+        `INVALID STATE: Not enough values for binary operator ${op}`
+      );
     const right = values.pop();
     const left = values.pop();
+    console.log(`  - Popped left operand: ${left.toTreeString()}`);
+    console.log(`  - Popped right operand: ${right.toTreeString()}`);
     switch (op) {
       case "AND":
         values.push(new And(left, right));
@@ -317,34 +330,85 @@
     }
   }
   function parse(tokens) {
+    console.clear();
+    console.log(
+      "%c--- Starting Expression Parser (Hyper-Verbose Mode) ---",
+      "font-weight: bold; font-size: 14px; color: #58D68D"
+    );
+    console.log("Input tokens:", JSON.parse(JSON.stringify(tokens)));
     if (tokens.length === 0) throw new Error("Cannot parse an empty expression.");
     const values = [];
     const operators = [];
     for (const token of tokens) {
+      console.log(
+        `
+Processing token: %c'${token}'`,
+        "color: cyan; font-weight: bold;"
+      );
       const upperToken = token.toUpperCase();
       if (isOperator(upperToken)) {
+        console.log("It is an operator.");
         while (operators.length > 0 && operators[operators.length - 1] !== "(" && PRECEDENCE[operators[operators.length - 1]] >= PRECEDENCE[upperToken]) {
+          const topOp = operators[operators.length - 1];
+          console.log(
+            `  -> Precedence rule met: Top operator '${topOp}' (prec: ${PRECEDENCE[topOp]}) >= current operator '${upperToken}' (prec: ${PRECEDENCE[upperToken]}). Applying top operator.`
+          );
           applyOperator(values, operators.pop());
         }
         operators.push(upperToken);
       } else if (token === "(") {
+        console.log("It is a left parenthesis.");
         operators.push(token);
       } else if (token === ")") {
+        console.log("It is a right parenthesis.");
         while (operators.length > 0 && operators[operators.length - 1] !== "(") {
           applyOperator(values, operators.pop());
         }
-        if (operators.length === 0) throw new Error("Mismatched parentheses: no matching '(' found.");
+        if (operators.length === 0)
+          throw new Error("Mismatched parentheses: no matching '(' found.");
+        console.log("  -> Found matching '('. Popping it from operator stack.");
         operators.pop();
       } else {
+        console.log("It is a value (predicate).");
         values.push(new Predicate(token));
       }
+      console.log("%cStacks after processing:", "color: #AED6F1", {
+        values: values.map((v) => v.toTreeString()),
+        operators: [...operators]
+      });
     }
+    console.log(
+      "\n%c--- Applying remaining operators ---",
+      "font-weight: bold; color: #58D68D"
+    );
     while (operators.length > 0) {
       const operator = operators.pop();
-      if (operator === "(") throw new Error("Mismatched parentheses: remaining '(' on stack.");
+      if (operator === "(")
+        throw new Error("Mismatched parentheses: remaining '(' on stack.");
       applyOperator(values, operator);
+      console.log("%cStacks after applying remaining op:", "color: #AED6F1", {
+        values: values.map((v) => v.toTreeString()),
+        operators: [...operators]
+      });
     }
-    if (values.length !== 1) throw new Error("Invalid expression syntax: check operators and operands.");
+    console.log("\n%c--- Final Check ---", "font-weight: bold; color: #58D68D");
+    console.log("Final values stack size:", values.length);
+    console.log(
+      "Final values stack content:",
+      values.map((v) => v.toTreeString())
+    );
+    if (values.length !== 1) {
+      console.error(
+        "FINAL CHECK FAILED! Stack should have 1 item, but has",
+        values.length
+      );
+      throw new Error("Invalid expression syntax: check operators and operands.");
+    }
+    console.log(
+      "%cParsing successful. Final Expression Object:",
+      "color: green; font-weight: bold;",
+      values[0]
+    );
     return values[0];
   }
   var PRECEDENCE, ExpressionParser;
@@ -357,10 +421,10 @@
       init_Not();
       init_RelevantImplication();
       PRECEDENCE = {
-        "NOT": 4,
-        "AND": 3,
-        "OR": 2,
-        "RELEVANTLY_IMPLIES": 1
+        NOT: 4,
+        AND: 3,
+        OR: 2,
+        RELEVANTLY_IMPLIES: 1
       };
       ExpressionParser = { parse };
     }
@@ -395,34 +459,66 @@
       var historyIndex = -1;
       var currentLine = "";
       function printWelcomeMessage() {
-        term.writeln("--- Grounded Finitist Connexive Logic Engine (TypeScript/Web Edition) ---");
+        term.writeln(
+          "--- Grounded Finitist Connexive Logic Engine (TypeScript/Web Edition) ---"
+        );
         term.writeln("Type 'help' for commands or 'exit' to quit.");
-        term.writeln("--------------------------------------------------------------------------");
+        term.writeln(
+          "--------------------------------------------------------------------------"
+        );
       }
       function printHelp() {
         term.writeln("");
         term.writeln("\x1B[1;33m--- Core Principles ---\x1B[0m");
-        term.writeln("1. \x1B[1mFINITE DOMAIN\x1B[0m: The 'forall' quantifier is ALWAYS restricted to a known set.");
-        term.writeln("2. \x1B[1mRELEVANT IMPLICATION\x1B[0m: The system exclusively uses a stricter, multi-layered implication.");
+        term.writeln(
+          "1. \x1B[1mFINITE DOMAIN\x1B[0m: The 'forall' quantifier is ALWAYS restricted to a known set."
+        );
+        term.writeln(
+          "2. \x1B[1mRELEVANT IMPLICATION\x1B[0m: The system exclusively uses a stricter, multi-layered implication."
+        );
         term.writeln("");
         term.writeln("\x1B[1;33m--- Available Commands (without <>) ---\x1B[0m");
-        term.writeln("\x1B[1mdomain add ObjectName\x1B[0m                     - Adds an object to the finite universe.");
-        term.writeln("\x1B[1mfact ObjectName predicateName\x1B[0m            - Defines an atomic predicate as true for an object.");
-        term.writeln("\x1B[1mquery ObjectName Expression?\x1B[0m            - Evaluates a complex expression for a specific object.");
-        term.writeln("\x1B[1mcheck forall Expression?\x1B[0m                  - Evaluates if an expression is true for all objects in the domain.");
-        term.writeln("\x1B[1mstate\x1B[0m                                       - Shows the current state of all objects and their facts.");
-        term.writeln("\x1B[1mhelp\x1B[0m                                        - Shows this help message.");
-        term.writeln("\x1B[1mexit\x1B[0m                                        - Exits the program (closes this terminal).");
-        term.writeln("\x1B[1mclear\x1B[0m                                       - Clears the terminal screen.");
+        term.writeln(
+          "\x1B[1mdomain add ObjectName\x1B[0m                     - Adds an object to the finite universe."
+        );
+        term.writeln(
+          "\x1B[1mfact ObjectName predicateName\x1B[0m            - Defines an atomic predicate as true for an object."
+        );
+        term.writeln(
+          "\x1B[1mquery ObjectName Expression?\x1B[0m            - Evaluates a complex expression for a specific object."
+        );
+        term.writeln(
+          "\x1B[1mcheck forall Expression?\x1B[0m                  - Evaluates if an expression is true for all objects in the domain."
+        );
+        term.writeln(
+          "\x1B[1mstate\x1B[0m                                       - Shows the current state of all objects and their facts."
+        );
+        term.writeln(
+          "\x1B[1mhelp\x1B[0m                                        - Shows this help message."
+        );
+        term.writeln(
+          "\x1B[1mexit\x1B[0m                                        - Exits the program (closes this terminal)."
+        );
+        term.writeln(
+          "\x1B[1mclear\x1B[0m                                       - Clears the terminal screen."
+        );
         term.writeln("");
         term.writeln("\x1B[1;33m--- Expression Syntax ---\x1B[0m");
         term.writeln("Use parentheses \x1B[1m()\x1B[0m for grouping.");
-        term.writeln("Predicates: \x1B[1misMortal\x1B[0m, \x1B[1mis_human\x1B[0m, etc. (must be single words, no spaces).");
-        term.writeln("Operators (by precedence): \x1B[1mNOT > AND > OR > RELEVANTLY_IMPLIES\x1B[0m.");
+        term.writeln(
+          "Predicates: \x1B[1misMortal\x1B[0m, \x1B[1mis_human\x1B[0m, etc. (must be single words, no spaces)."
+        );
+        term.writeln(
+          "Operators (by precedence): \x1B[1mNOT > AND > OR > RELEVANTLY_IMPLIES\x1B[0m."
+        );
         term.writeln("  \x1B[1mRELEVANTLY_IMPLIES\x1B[0m: A stricter implication.");
         term.writeln("");
-        term.writeln("\x1B[1mExample\x1B[0m: query socrates ( isHuman AND isGreek ) RELEVANTLY_IMPLIES isHuman ?");
-        term.writeln("--------------------------------------------------------------------------");
+        term.writeln(
+          "\x1B[1mExample\x1B[0m: query socrates ( isHuman AND isGreek ) RELEVANTLY_IMPLIES isHuman ?"
+        );
+        term.writeln(
+          "--------------------------------------------------------------------------"
+        );
       }
       function parseCommandLine(input) {
         const tokens = [];
@@ -457,7 +553,9 @@
                 universe.addObject(new DomainObject(parts[2]));
                 term.writeln(`Object '${parts[2]}' added to the domain.`);
               } else {
-                term.writeln("\x1B[1;31mError: Invalid 'domain' command. Use: domain add ObjectName\x1B[0m");
+                term.writeln(
+                  "\x1B[1;31mError: Invalid 'domain' command. Use: domain add ObjectName\x1B[0m"
+                );
               }
               break;
             case "fact":
@@ -467,15 +565,21 @@
                   obj.setPredicateState(parts[2], true);
                   term.writeln(`Fact defined: ${obj.name} -> '${parts[2]}' is true.`);
                 } else {
-                  term.writeln(`\x1B[1;31mError: Object '${parts[1]}' not found.\x1B[0m`);
+                  term.writeln(
+                    `\x1B[1;31mError: Object '${parts[1]}' not found.\x1B[0m`
+                  );
                 }
               } else {
-                term.writeln("\x1B[1;31mError: Invalid 'fact' command. Use: fact ObjectName predicateName\x1B[0m");
+                term.writeln(
+                  "\x1B[1;31mError: Invalid 'fact' command. Use: fact ObjectName predicateName\x1B[0m"
+                );
               }
               break;
             case "query": {
               if (parts.length < 3) {
-                term.writeln("\x1B[1;31mError: Invalid 'query' command. Use: query ObjectName Expression?\x1B[0m");
+                term.writeln(
+                  "\x1B[1;31mError: Invalid 'query' command. Use: query ObjectName Expression?\x1B[0m"
+                );
                 return;
               }
               const obj = universe.getObject(parts[1]);
@@ -485,15 +589,27 @@
                 const expression = ExpressionParser.parse(exprTokens);
                 const result = expression.evaluate(obj);
                 term.writeln("");
-                term.writeln("\x1B[1;36m==================== QUERY RESULT ====================\x1B[0m");
-                term.writeln(`\x1B[1mExpression:\x1B[0m ${expression.toTreeString()}`);
+                term.writeln(
+                  "\x1B[1;36m==================== QUERY RESULT ====================\x1B[0m"
+                );
+                term.writeln(
+                  `\x1B[1mExpression:\x1B[0m ${expression.toTreeString()}`
+                );
                 term.writeln(`\x1B[1mFor Object:\x1B[0m ${obj.name}`);
-                term.writeln(`\x1B[1mFinal Result:\x1B[0m \x1B[1;${result.value ? "32mTRUE" : "31mFALSE"}\x1B[0m`);
-                term.writeln("\x1B[1;36m-------------------- Derivation --------------------\x1B[0m");
+                term.writeln(
+                  `\x1B[1mFinal Result:\x1B[0m \x1B[1;${result.value ? "32mTRUE" : "31mFALSE"}\x1B[0m`
+                );
+                term.writeln(
+                  "\x1B[1;36m-------------------- Derivation --------------------\x1B[0m"
+                );
                 term.writeln(result.explanation);
-                term.writeln("\x1B[1;36m====================================================\x1B[0m");
+                term.writeln(
+                  "\x1B[1;36m====================================================\x1B[0m"
+                );
               } else {
-                term.writeln(`\x1B[1;31mError: Object '${parts[1]}' not found.\x1B[0m`);
+                term.writeln(
+                  `\x1B[1;31mError: Object '${parts[1]}' not found.\x1B[0m`
+                );
               }
               break;
             }
@@ -504,17 +620,23 @@
               } else if (parts.length >= 4 && parts[1].toLowerCase() === "for" && parts[2].toLowerCase() === "all") {
                 expressionTokens = parts.slice(3);
               } else {
-                term.writeln("\x1B[1;31mError: Invalid 'check' command. Use: check forall Expression?\x1B[0m");
+                term.writeln(
+                  "\x1B[1;31mError: Invalid 'check' command. Use: check forall Expression?\x1B[0m"
+                );
                 return;
               }
               if (expressionTokens.length === 0) {
-                term.writeln("\x1B[1;31mError: Missing expression for 'check forall' command.\x1B[0m");
+                term.writeln(
+                  "\x1B[1;31mError: Missing expression for 'check forall' command.\x1B[0m"
+                );
                 return;
               }
               cleanExpressionTokens(expressionTokens);
               const expression = ExpressionParser.parse(expressionTokens);
               const result = universe.checkForAll(expression);
-              term.writeln(`Result for ALL objects: \x1B[1;${result.value ? "32mTRUE" : "31mFALSE"}\x1B[0m`);
+              term.writeln(
+                `Result for ALL objects: \x1B[1;${result.value ? "32mTRUE" : "31mFALSE"}\x1B[0m`
+              );
               if (result.reason) {
                 term.writeln(result.reason);
               }
@@ -533,8 +655,27 @@
             case "clear":
               term.clear();
               break;
+            case "debugparse": {
+              term.writeln("\x1B[1;33m--- Running Parser in Debug Mode ---\x1B[0m");
+              term.writeln(
+                "Check the browser's developer console (F12) for detailed output."
+              );
+              const exprTokens = parts.slice(1);
+              cleanExpressionTokens(exprTokens);
+              try {
+                const expression = ExpressionParser.parse(exprTokens);
+                term.writeln(
+                  `\x1B[1;32mParsing Successful.\x1B[0m Root node: ${expression.toTreeString()}`
+                );
+              } catch (e) {
+                term.writeln(`\x1B[1;31mParsing Failed:\x1B[0m ${e.message}`);
+              }
+              break;
+            }
             default:
-              term.writeln(`\x1B[1;31mUnknown command: '${command}'. Type 'help' for a list of commands.\x1B[0m`);
+              term.writeln(
+                `\x1B[1;31mUnknown command: '${command}'. Type 'help' for a list of commands.\x1B[0m`
+              );
           }
         } catch (e) {
           term.writeln(`\x1B[1;31mError: ${e.message}\x1B[0m`);
@@ -542,7 +683,10 @@
       }
       printWelcomeMessage();
       term.write(PROMPT_STRING);
-      var PROMPT_VISIBLE_LENGTH = PROMPT_STRING.replace(/[\u001b\u009b][[()#;?]?[0-9]{1,4}(?:;[0-9]{0,4})*[0-9A-ORZcf-nqry=><]/g, "").length;
+      var PROMPT_VISIBLE_LENGTH = PROMPT_STRING.replace(
+        /[\u001b\u009b][[()#;?]?[0-9]{1,4}(?:;[0-9]{0,4})*[0-9A-ORZcf-nqry=><]/g,
+        ""
+      ).length;
       term.onKey(({ key, domEvent }) => {
         const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
         if (domEvent.key === "Enter") {

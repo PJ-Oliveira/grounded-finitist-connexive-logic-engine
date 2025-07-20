@@ -7,9 +7,19 @@ export class Not implements Expression {
     evaluate(object: DomainObject): EvaluationResult {
         const innerResult = this.expression.evaluate(object);
         const finalValue = !innerResult.value;
-        const explanation = `Negation (NOT) is ${finalValue ? "TRUE" : "FALSE"} because the inner expression evaluated to ${innerResult.value ? "TRUE" : "FALSE"}.
-  - Inner Eval: ${innerResult.explanation.replace(/\n/g, '\n  ')}`;
-        return new EvaluationResult(finalValue, explanation);
+
+        // Build the explanation as a proper array of strings
+        const explanationLines: string[] = [];
+        explanationLines.push(`NOT evaluates to ${finalValue} because its inner expression is ${innerResult.value}.`);
+        explanationLines.push(`  - Inner Derivation...`);
+        
+        // Add the inner explanation, indented, to the array
+        innerResult.explanationLines.forEach(line => {
+            explanationLines.push(`    ${line}`);
+        });
+
+        // Return the result with the explanation as an array, respecting the new type
+        return new EvaluationResult(finalValue, explanationLines);
     }
 
     getAtomicPredicates(): Set<string> {

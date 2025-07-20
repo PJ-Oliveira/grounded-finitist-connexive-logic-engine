@@ -178,7 +178,7 @@ ${objectStates}`;
           const rightResult = this.right.evaluate(object);
           const finalValue = leftResult.value && rightResult.value;
           const reason = `(${leftResult.value} AND ${rightResult.value}) -> ${finalValue}`;
-          return new EvaluationResult(finalValue, reason);
+          return new EvaluationResult(finalValue, [reason]);
         }
         getAtomicPredicates() {
           const combined = new Set(this.left.getAtomicPredicates());
@@ -211,7 +211,7 @@ ${objectStates}`;
           const rightResult = this.right.evaluate(object);
           const finalValue = leftResult.value || rightResult.value;
           const reason = `(${leftResult.value} OR ${rightResult.value}) -> ${finalValue}`;
-          return new EvaluationResult(finalValue, reason);
+          return new EvaluationResult(finalValue, [reason]);
         }
         getAtomicPredicates() {
           const combined = new Set(this.left.getAtomicPredicates());
@@ -241,9 +241,13 @@ ${objectStates}`;
         evaluate(object) {
           const innerResult = this.expression.evaluate(object);
           const finalValue = !innerResult.value;
-          const explanation = `Negation (NOT) is ${finalValue ? "TRUE" : "FALSE"} because the inner expression evaluated to ${innerResult.value ? "TRUE" : "FALSE"}.
-  - Inner Eval: ${innerResult.explanation.replace(/\n/g, "\n  ")}`;
-          return new EvaluationResult(finalValue, explanation);
+          const explanationLines = [];
+          explanationLines.push(`NOT evaluates to ${finalValue} because its inner expression is ${innerResult.value}.`);
+          explanationLines.push(`  - Inner Derivation...`);
+          innerResult.explanationLines.forEach((line) => {
+            explanationLines.push(`    ${line}`);
+          });
+          return new EvaluationResult(finalValue, explanationLines);
         }
         getAtomicPredicates() {
           return this.expression.getAtomicPredicates();

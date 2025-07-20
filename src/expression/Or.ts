@@ -9,7 +9,7 @@ export class Or implements Expression {
         const rightResult = this.right.evaluate(object);
         const finalValue = leftResult.value || rightResult.value;
         const reason = `(${leftResult.value} OR ${rightResult.value}) -> ${finalValue}`;
-        return new EvaluationResult(finalValue, reason);
+        return new EvaluationResult(finalValue, [reason]); // Wrap in brackets []
     }
 
     getAtomicPredicates(): Set<string> {

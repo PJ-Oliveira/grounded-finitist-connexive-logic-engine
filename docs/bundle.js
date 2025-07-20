@@ -28,11 +28,20 @@
           }
           return void 0;
         }
+        /**
+         * Evaluates if an expression holds true for all objects in the domain.
+         * NON-CLASSICAL PRINCIPLE: Finitism & Rejection of Vacuous Truth.
+         * The universal quantifier 'forall' only ranges over the known, finite set of objects.
+         * Furthermore, if the domain is empty, the result is FALSE, rejecting the classical
+         * notion that universal claims about an empty set are vacuously true.
+         * @param expression The expression to test.
+         * @returns An object containing the boolean result and an optional heuristic reason.
+         */
         checkForAll(expression) {
           if (this.objects.size === 0) {
             const reason = `
-
-\x1B[36m[Heuristic: Rejection of Vacuous Truth]\x1B[0m The result is FALSE because the domain of objects is empty. Universal claims about nothing are not considered true in this logic.`;
+[Heuristic: Rejection of Vacuous Truth]
+The result is FALSE because the domain of objects is empty. Universal claims about nothing are not considered true in this logic.`;
             return { value: false, reason };
           }
           const result = Array.from(this.objects).every(
@@ -44,9 +53,9 @@
           if (this.objects.size === 0) {
             return "Domain is empty.";
           }
-          const objectStates = Array.from(this.objects).map((obj) => obj.toString()).join("\n  ");
+          const objectStates = Array.from(this.objects).map((obj) => `  - ${obj.toString()}`).join("\n");
           return `Domain State:
-  ${objectStates}`;
+${objectStates}`;
         }
       };
     }
@@ -62,20 +71,39 @@
           this.name = name;
           this.predicateStates = /* @__PURE__ */ new Map();
         }
+        /**
+         * Defines a fact (a predicate's state) for this object.
+         * @param predicateName The name of the predicate, e.g., "isMortal".
+         * @param value The truth value of the predicate.
+         */
         setPredicateState(predicateName, value) {
           this.predicateStates.set(predicateName.toLowerCase(), value);
         }
+        /**
+         * Checks the truth value of a predicate for this object.
+         * NON-CLASSICAL PRINCIPLE: This method implements the Closed-World Assumption (CWA).
+         * If a predicate has not been explicitly set, it is assumed to be FALSE.
+         * This contrasts with classical logic, where its value would be considered 'unknown'.
+         * @param predicateName The name of the predicate to check.
+         * @returns `true` or `false`.
+         */
         checkPredicate(predicateName) {
           return this.predicateStates.get(predicateName.toLowerCase()) || false;
         }
         /**
-         * NEW METHOD: Gets the raw state of a predicate (true, false, or undefined if not set).
-         * This is used to detect when the Closed-World Assumption is being applied.
+         * Gets the raw state of a predicate (true, false, or undefined if not explicitly set).
+         * This is used by Expression evaluators to detect when the CWA is being applied
+         * in order to provide explanatory heuristics.
+         * @param predicateName The name of the predicate to check.
+         * @returns `true`, `false`, or `undefined`.
          */
         getRawPredicateState(predicateName) {
           return this.predicateStates.get(predicateName.toLowerCase());
         }
         toString() {
+          if (this.predicateStates.size === 0) {
+            return `DomainObject{name='${this.name}', states={EMPTY}}`;
+          }
           const states = Array.from(this.predicateStates.entries()).map(([key, value]) => `${key}=${value}`).join(", ");
           return `DomainObject{name='${this.name}', states={${states}}}`;
         }
@@ -241,6 +269,13 @@
           this.antecedent = antecedent;
           this.consequent = consequent;
         }
+        /**
+         * Evaluates the implication based on four conditions:
+         * 1. Classical Truth: The standard material implication (!A || C) must hold.
+         * 2. Relevance: The consequent cannot introduce new atomic predicates not found in the antecedent.
+         * 3. Aristotle's Thesis (Connexive): An expression of the form (NOT P -> P) is incoherent and FALSE.
+         * 4. Boethius's Thesis (Connexive): An antecedent cannot imply both a proposition and its negation.
+         */
         evaluate(object) {
           const antecedentResult = this.antecedent.evaluate(object);
           const consequentResult = this.consequent.evaluate(object);
@@ -252,8 +287,7 @@
           );
           let isAristotleCoherent = true;
           if (this.antecedent instanceof Not) {
-            const notAntecedent = this.antecedent;
-            if (notAntecedent.expression.equals(this.consequent)) {
+            if (this.antecedent.expression.equals(this.consequent)) {
               isAristotleCoherent = false;
             }
           }
@@ -261,23 +295,26 @@
           const oppositeClassicalTruth = !antecedentResult.value || oppositeConsequentResult.value;
           const isBoethiusViolation = classicalTruth && oppositeClassicalTruth;
           const finalValue = classicalTruth && isRelevant && isAristotleCoherent && !isBoethiusViolation;
+          const isNonClassicalResult = finalValue !== classicalTruth;
           let reason = `Classical: ${classicalTruth}, Relevant: ${isRelevant}, Aristotle Coherent: ${isAristotleCoherent}, Boethius Coherent: ${!isBoethiusViolation} -> Final: ${finalValue}`;
           if (!isRelevant) {
             reason += `
 
-\x1B[36m[Heuristic: Relevance Logic]\x1B[0m Implication failed. The consequent cannot introduce new topics (predicates) that were not present in the antecedent.`;
+\x1B[36m[Heuristic: Relevance Logic]\x1B[0m
+Implication failed. The consequent cannot introduce new topics (predicates) that were not present in the antecedent.`;
           }
           if (!isAristotleCoherent) {
             reason += `
 
-\x1B[36m[Heuristic: Connexive Logic (Aristotle's Thesis)]\x1B[0m Implication failed. A proposition cannot be implied by its own negation (form: NOT P -> P).`;
+\x1B[36m[Heuristic: Connexive Logic (Aristotle's Thesis)]\x1B[0m
+Implication failed. A proposition cannot be implied by its own negation (form: NOT P -> P).`;
           }
           if (isBoethiusViolation) {
             reason += `
 
-\x1B[36m[Heuristic: Connexive Logic (Boethius's Thesis)]\x1B[0m Implication failed. An antecedent cannot imply both a proposition and its negation (form: (A -> C) and (A -> NOT C)).`;
+\x1B[36m[Heuristic: Connexive Logic (Boethius's Thesis)]\x1B[0m
+Implication failed. An antecedent cannot imply both a proposition and its negation (form: (A -> C) and (A -> NOT C)).`;
           }
-          const isNonClassicalResult = finalValue !== classicalTruth;
           return new EvaluationResult(finalValue, reason, isNonClassicalResult, classicalTruth);
         }
         getAtomicPredicates() {
@@ -295,34 +332,68 @@
     }
   });
 
+  // src/common/Logger.ts
+  var Logger;
+  var init_Logger = __esm({
+    "src/common/Logger.ts"() {
+      "use strict";
+      Logger = class {
+        static {
+          this.isDebugEnabled = false;
+        }
+        static async init() {
+          try {
+            const response = await fetch("config.json");
+            if (!response.ok) {
+              console.error("Could not load config.json. Debug logging will be disabled.");
+              return;
+            }
+            const config = await response.json();
+            this.isDebugEnabled = !!config.debugLoggingEnabled;
+            this.info("Logger initialized.");
+            if (this.isDebugEnabled) {
+              this.debug("Debug logging is enabled via config.json.");
+            }
+          } catch (error) {
+            console.error("Error initializing logger from config.json:", error);
+          }
+        }
+        static info(message, ...args) {
+          console.info(`[INFO] ${message}`, ...args);
+        }
+        static warn(message, ...args) {
+          console.warn(`[WARN] ${message}`, ...args);
+        }
+        static error(message, ...args) {
+          console.error(`[ERROR] ${message}`, ...args);
+        }
+        /**
+         * Debug logs are only printed if the debug flag is enabled in config.json.
+         */
+        static debug(message, ...args) {
+          if (this.isDebugEnabled) {
+            console.debug(`[DEBUG] ${message}`, ...args);
+          }
+        }
+      };
+    }
+  });
+
   // src/ui/ExpressionParser.ts
   function isOperator(token) {
     return token.toUpperCase() in PRECEDENCE;
   }
   function applyOperator(values, operator) {
     const op = operator.toUpperCase();
-    console.log(
-      `%cApplying operator: ${op}`,
-      "color: #FFC300; font-weight: bold;"
-    );
+    Logger.debug(`Applying operator: ${op}`);
     if (op === "NOT") {
-      if (values.length < 1)
-        throw new Error(`INVALID STATE: Not enough values for NOT operator.`);
-      console.log(
-        "  - Popping operand for NOT:",
-        values[values.length - 1]?.toTreeString()
-      );
+      if (values.length < 1) throw new Error(`Invalid syntax for NOT operator.`);
       values.push(new Not(values.pop()));
       return;
     }
-    if (values.length < 2)
-      throw new Error(
-        `INVALID STATE: Not enough values for binary operator ${op}`
-      );
+    if (values.length < 2) throw new Error(`Invalid syntax for binary operator ${op}`);
     const right = values.pop();
     const left = values.pop();
-    console.log(`  - Popped left operand: ${left.toTreeString()}`);
-    console.log(`  - Popped right operand: ${right.toTreeString()}`);
     switch (op) {
       case "AND":
         values.push(new And(left, right));
@@ -338,85 +409,47 @@
     }
   }
   function parse(tokens) {
-    console.clear();
-    console.log(
-      "%c--- Starting Expression Parser (Hyper-Verbose Mode) ---",
-      "font-weight: bold; font-size: 14px; color: #58D68D"
-    );
-    console.log("Input tokens:", JSON.parse(JSON.stringify(tokens)));
-    if (tokens.length === 0) throw new Error("Cannot parse an empty expression.");
+    Logger.debug("--- Starting Expression Parser ---", { tokens });
+    if (tokens.length === 0) {
+      throw new Error("Cannot parse an empty expression.");
+    }
     const values = [];
     const operators = [];
     for (const token of tokens) {
-      console.log(
-        `
-Processing token: %c'${token}'`,
-        "color: cyan; font-weight: bold;"
-      );
+      Logger.debug(`Processing token: '${token}'`);
       const upperToken = token.toUpperCase();
       if (isOperator(upperToken)) {
-        console.log("It is an operator.");
         while (operators.length > 0 && operators[operators.length - 1] !== "(" && PRECEDENCE[operators[operators.length - 1]] >= PRECEDENCE[upperToken]) {
-          const topOp = operators[operators.length - 1];
-          console.log(
-            `  -> Precedence rule met: Top operator '${topOp}' (prec: ${PRECEDENCE[topOp]}) >= current operator '${upperToken}' (prec: ${PRECEDENCE[upperToken]}). Applying top operator.`
-          );
           applyOperator(values, operators.pop());
         }
         operators.push(upperToken);
       } else if (token === "(") {
-        console.log("It is a left parenthesis.");
         operators.push(token);
       } else if (token === ")") {
-        console.log("It is a right parenthesis.");
         while (operators.length > 0 && operators[operators.length - 1] !== "(") {
           applyOperator(values, operators.pop());
         }
-        if (operators.length === 0)
-          throw new Error("Mismatched parentheses: no matching '(' found.");
-        console.log("  -> Found matching '('. Popping it from operator stack.");
+        if (operators.length === 0) throw new Error("Mismatched parentheses: no matching '(' found.");
         operators.pop();
       } else {
-        console.log("It is a value (predicate).");
         values.push(new Predicate(token));
       }
-      console.log("%cStacks after processing:", "color: #AED6F1", {
+      Logger.debug("Stacks after processing:", {
         values: values.map((v) => v.toTreeString()),
         operators: [...operators]
       });
     }
-    console.log(
-      "\n%c--- Applying remaining operators ---",
-      "font-weight: bold; color: #58D68D"
-    );
+    Logger.debug("--- Applying remaining operators ---");
     while (operators.length > 0) {
       const operator = operators.pop();
-      if (operator === "(")
-        throw new Error("Mismatched parentheses: remaining '(' on stack.");
+      if (operator === "(") throw new Error("Mismatched parentheses: remaining '(' on stack.");
       applyOperator(values, operator);
-      console.log("%cStacks after applying remaining op:", "color: #AED6F1", {
-        values: values.map((v) => v.toTreeString()),
-        operators: [...operators]
-      });
     }
-    console.log("\n%c--- Final Check ---", "font-weight: bold; color: #58D68D");
-    console.log("Final values stack size:", values.length);
-    console.log(
-      "Final values stack content:",
-      values.map((v) => v.toTreeString())
-    );
     if (values.length !== 1) {
-      console.error(
-        "FINAL CHECK FAILED! Stack should have 1 item, but has",
-        values.length
-      );
+      Logger.error("FINAL PARSER CHECK FAILED!", { finalValueCount: values.length, values });
       throw new Error("Invalid expression syntax: check operators and operands.");
     }
-    console.log(
-      "%cParsing successful. Final Expression Object:",
-      "color: green; font-weight: bold;",
-      values[0]
-    );
+    Logger.debug("Parsing successful.", { rootExpression: values[0].toTreeString() });
     return values[0];
   }
   var PRECEDENCE, ExpressionParser;
@@ -428,11 +461,12 @@ Processing token: %c'${token}'`,
       init_Or();
       init_Not();
       init_RelevantImplication();
+      init_Logger();
       PRECEDENCE = {
-        NOT: 4,
-        AND: 3,
-        OR: 2,
-        RELEVANTLY_IMPLIES: 1
+        "NOT": 4,
+        "AND": 3,
+        "OR": 2,
+        "RELEVANTLY_IMPLIES": 1
       };
       ExpressionParser = { parse };
     }
@@ -444,6 +478,7 @@ Processing token: %c'${token}'`,
       init_Domain();
       init_DomainObject();
       init_ExpressionParser();
+      init_Logger();
       var PROMPT_STRING = "\x1B[1;32mlogic>\x1B[0m ";
       var term = new Terminal({
         cursorBlink: true,
@@ -524,11 +559,13 @@ Processing token: %c'${token}'`,
         }
       }
       function handleCommand(line) {
+        Logger.info(`Executing command line: "${line}"`);
         const parts = parseCommandLine(line);
         if (parts.length === 0) {
           return;
         }
         const command = parts[0].toLowerCase();
+        Logger.debug(`Parsed command: '${command}'`, { parts });
         try {
           switch (command) {
             case "domain":
@@ -622,11 +659,15 @@ Processing token: %c'${token}'`,
               term.writeln(`\x1B[1;31mUnknown command: '${command}'. Type 'help' for a list of commands.\x1B[0m`);
           }
         } catch (e) {
-          term.writeln(`\x1B[1;31mError: ${e.message}\x1B[0m`);
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          Logger.error("An error occurred while handling command:", { line, error: e });
+          term.writeln(`\x1B[1;31mError: ${errorMessage}\x1B[0m`);
         }
       }
-      printWelcomeMessage();
-      term.write(PROMPT_STRING);
+      Logger.init().then(() => {
+        printWelcomeMessage();
+        term.write(PROMPT_STRING);
+      });
       var PROMPT_VISIBLE_LENGTH = PROMPT_STRING.replace(/[\u001b\u009b][[()#;?]?[0-9]{1,4}(?:;[0-9]{0,4})*[0-9A-ORZcf-nqry=><]/g, "").length;
       term.onKey(({ key, domEvent }) => {
         const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;

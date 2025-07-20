@@ -1,4 +1,4 @@
-// main.ts - Final version with corrected tokenizer
+// src/main.ts
 
 // These are globals provided by the xterm.js library scripts loaded in index.html
 declare const Terminal: any;
@@ -8,6 +8,7 @@ declare const FitAddon: any;
 import { Domain } from './engine/Domain';
 import { DomainObject } from './engine/DomainObject';
 import { ExpressionParser } from './ui/ExpressionParser';
+import { Logger } from './common/Logger';
 
 // --- Terminal Setup ---
 const PROMPT_STRING = '\x1b[1;32mlogic>\x1b[0m ';
@@ -37,7 +38,6 @@ let historyIndex = -1;
 let currentLine = "";
 
 // --- Helper Functions ---
-
 function printWelcomeMessage() {
     term.writeln("--- Grounded Finitist Connexive Logic Engine (TypeScript/Web Edition) ---");
     term.writeln("Type 'help' for commands or 'exit' to quit.");
@@ -71,16 +71,11 @@ function printHelp() {
 }
 
 function parseCommandLine(input: string): string[] {
-    // First, ensure that parentheses are always treated as separate tokens
-    // by adding spaces around them. This is the key fix.
     const spacedInput = input.replace(/\(/g, ' ( ').replace(/\)/g, ' ) ');
-
     const tokens: string[] = [];
-    // Now, the original regex can correctly split by spaces.
     const regex = /"([^"]*)"|\S+/g;
     let match;
     while ((match = regex.exec(spacedInput)) !== null) {
-        // We trim the token in case of multiple spaces, just to be safe.
         const token = (match[1] || match[0]).trim();
         if (token) {
             tokens.push(token);
@@ -104,11 +99,15 @@ function cleanExpressionTokens(tokens: string[]): void {
 }
 
 function handleCommand(line: string): void {
+    Logger.info(`Executing command line: "${line}"`);
     const parts = parseCommandLine(line);
     if (parts.length === 0) {
         return;
     }
+
     const command = parts[0].toLowerCase();
+    Logger.debug(`Parsed command: '${command}'`, { parts });
+
     try {
         switch (command) {
             case 'domain':
@@ -147,18 +146,16 @@ function handleCommand(line: string): void {
                     term.writeln("\x1b[1;36m==================== QUERY RESULT ====================\x1b[0m");
                     term.writeln(`\x1b[1mExpression:\x1b[0m ${expression.toTreeString()}`);
                     term.writeln(`\x1b[1mFor Object:\x1b[0m ${obj.name}`);
-                    let resultOutput = `\x1b[1;${result.value ? '32mTRUE' : '31mFALSE'}\x1b[0m`; // Default format
+                    
+                    let resultOutput = `\x1b[1;${result.value ? '32mTRUE' : '31mFALSE'}\x1b[0m`;
                     if (result.isNonClassical) {
                         const finalLabel = result.value ? 'TRUE' : 'FALSE';
                         const classicalLabel = result.classicalValue ? 'TRUE' : 'FALSE';
-                        // Custom format for non-classical results
                         resultOutput = `\x1b[1;33mNON-CLASSICALLY ${finalLabel}\x1b[0m (classically, the result would be ${classicalLabel})`;
                     }
                     term.writeln(`\x1b[1mFinal Result:\x1b[0m ${resultOutput}`);
-                    // --- End of new logic ---
 
                     term.writeln("\x1b[1;36m-------------------- Derivation --------------------\x1b[0m");
-
                     term.writeln(result.explanation);
                     term.writeln("\x1b[1;36m====================================================\x1b[0m");
                 } else {
@@ -183,7 +180,6 @@ function handleCommand(line: string): void {
                 cleanExpressionTokens(expressionTokens);
                 const expression = ExpressionParser.parse(expressionTokens);
                 const result = universe.checkForAll(expression);
-                // Updated to handle the object returned by checkForAll
                 term.writeln(`Result for ALL objects: \x1b[1;${result.value ? '32mTRUE' : '31mFALSE'}\x1b[0m`);
                 if (result.reason) {
                     term.writeln(result.reason);
@@ -207,18 +203,22 @@ function handleCommand(line: string): void {
                 term.writeln(`\x1b[1;31mUnknown command: '${command}'. Type 'help' for a list of commands.\x1b[0m`);
         }
     } catch (e: any) {
-        term.writeln(`\x1b[1;31mError: ${e.message}\x1b[0m`);
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        Logger.error("An error occurred while handling command:", { line, error: e });
+        term.writeln(`\x1b[1;31mError: ${errorMessage}\x1b[0m`);
     }
 }
 
 // --- Terminal Input Logic ---
-printWelcomeMessage();
-term.write(PROMPT_STRING);
+// Initialize the logger, then start the application logic
+Logger.init().then(() => {
+    printWelcomeMessage();
+    term.write(PROMPT_STRING);
+});
+
 
 const PROMPT_VISIBLE_LENGTH = PROMPT_STRING.replace(/[\u001b\u009b][[()#;?]?[0-9]{1,4}(?:;[0-9]{0,4})*[0-9A-ORZcf-nqry=><]/g, '').length;
 
-// Final stable implementation:
-// Use a single `onKey` handler and inspect the event to decide the action.
 term.onKey(({ key, domEvent }: { key: string; domEvent: KeyboardEvent }) => {
     
     const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
@@ -234,7 +234,6 @@ term.onKey(({ key, domEvent }: { key: string; domEvent: KeyboardEvent }) => {
         historyIndex = -1;
         currentLine = "";
         term.write(PROMPT_STRING);
-
     } else if (domEvent.key === 'Backspace') {
         if (term.buffer.active.cursorX > PROMPT_VISIBLE_LENGTH) {
             currentLine = currentLine.slice(0, -1);
@@ -262,8 +261,6 @@ term.onKey(({ key, domEvent }: { key: string; domEvent: KeyboardEvent }) => {
             currentLine = "";
         }
     } else if (printable && domEvent.key.length === 1) {
-        // This handles normal characters, including spaces.
-        // Copy-paste is also handled character by character here.
         currentLine += domEvent.key;
         term.write(domEvent.key);
     }

@@ -1,54 +1,62 @@
+// src/expression/RelevantImplication.ts
+
 import { Expression, EvaluationResult } from '../common/types';
 import { DomainObject } from '../engine/DomainObject';
 import { Not } from './Not';
 
+/**
+ * Represents a non-classical implication that is both Relevant and Connexive.
+ * It is stricter than classical material implication (P -> Q).
+ */
 export class RelevantImplication implements Expression {
     constructor(public readonly antecedent: Expression, public readonly consequent: Expression) {}
 
+    /**
+     * Evaluates the implication based on four conditions:
+     * 1. Classical Truth: The standard material implication (!A || C) must hold.
+     * 2. Relevance: The consequent cannot introduce new atomic predicates not found in the antecedent.
+     * 3. Aristotle's Thesis (Connexive): An expression of the form (NOT P -> P) is incoherent and FALSE.
+     * 4. Boethius's Thesis (Connexive): An antecedent cannot imply both a proposition and its negation.
+     */
     evaluate(object: DomainObject): EvaluationResult {
         const antecedentResult = this.antecedent.evaluate(object);
         const consequentResult = this.consequent.evaluate(object);
 
         const classicalTruth = !antecedentResult.value || consequentResult.value;
+        
         const antecedentPredicates = this.antecedent.getAtomicPredicates();
         const consequentPredicates = this.consequent.getAtomicPredicates();
-
-        // Relevance check
         const isRelevant = [...consequentPredicates].every(
             predicate => antecedentPredicates.has(predicate)
         );
 
-        // Aristotle's Thesis check: is the structure NOT-P -> P?
         let isAristotleCoherent = true;
         if (this.antecedent instanceof Not) {
-            const notAntecedent = this.antecedent as Not;
-            if (notAntecedent.expression.equals(this.consequent)) {
+            if ((this.antecedent as Not).expression.equals(this.consequent)) {
                 isAristotleCoherent = false;
             }
         }
 
-        // Boethius's Thesis check: is it the case that (A -> C) and (A -> ~C)?
         const oppositeConsequentResult = new Not(this.consequent).evaluate(object);
         const oppositeClassicalTruth = !antecedentResult.value || oppositeConsequentResult.value;
         const isBoethiusViolation = classicalTruth && oppositeClassicalTruth;
 
         const finalValue = classicalTruth && isRelevant && isAristotleCoherent && !isBoethiusViolation;
+        const isNonClassicalResult = finalValue !== classicalTruth;
         
-        // Build the detailed explanation string with heuristics
+        // Build the detailed explanation string.
         let reason = `Classical: ${classicalTruth}, Relevant: ${isRelevant}, Aristotle Coherent: ${isAristotleCoherent}, Boethius Coherent: ${!isBoethiusViolation} -> Final: ${finalValue}`;
 
-        // HEURISTIC: Add explanations for failures.
+        // Add heuristic explanations for non-classical failures with corrected formatting.
         if (!isRelevant) {
-            reason += `\n\n\x1b[36m[Heuristic: Relevance Logic]\x1b[0m Implication failed. The consequent cannot introduce new topics (predicates) that were not present in the antecedent.`;
+            reason += `\n\n\x1b[36m[Heuristic: Relevance Logic]\x1b[0m\nImplication failed. The consequent cannot introduce new topics (predicates) that were not present in the antecedent.`;
         }
         if (!isAristotleCoherent) {
-            reason += `\n\n\x1b[36m[Heuristic: Connexive Logic (Aristotle's Thesis)]\x1b[0m Implication failed. A proposition cannot be implied by its own negation (form: NOT P -> P).`;
+            reason += `\n\n\x1b[36m[Heuristic: Connexive Logic (Aristotle's Thesis)]\x1b[0m\nImplication failed. A proposition cannot be implied by its own negation (form: NOT P -> P).`;
         }
         if (isBoethiusViolation) {
-             reason += `\n\n\x1b[36m[Heuristic: Connexive Logic (Boethius's Thesis)]\x1b[0m Implication failed. An antecedent cannot imply both a proposition and its negation (form: (A -> C) and (A -> NOT C)).`;
+             reason += `\n\n\x1b[36m[Heuristic: Connexive Logic (Boethius's Thesis)]\x1b[0m\nImplication failed. An antecedent cannot imply both a proposition and its negation (form: (A -> C) and (A -> NOT C)).`;
         }
-
-        const isNonClassicalResult = finalValue !== classicalTruth;
 
         return new EvaluationResult(finalValue, reason, isNonClassicalResult, classicalTruth);
     }

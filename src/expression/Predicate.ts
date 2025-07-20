@@ -8,14 +8,15 @@ export class Predicate implements Expression {
         const rawValue = object.getRawPredicateState(this.name);
         const value = rawValue === undefined ? false : rawValue;
 
-        let explanation = `Fact '${this.name}' is ${value ? "TRUE" : "FALSE"} for object '${object.name}'`;
+        const explanation: string[] = [];
+        explanation.push(`Fact '${this.name}' is ${value ? "TRUE" : "FALSE"} for object '${object.name}'`);
 
-        // HEURISTIC: Add explanation for the Closed-World Assumption.
         if (rawValue === undefined) {
-            explanation += `\n\n\x1b[36m[Heuristic: Closed-World Assumption]\x1b[0m The fact was not explicitly set to TRUE, so it is assumed to be FALSE. Classical logic might consider its truth value 'unknown'.`;
+            explanation.push(`\n[Heuristic: Closed-World Assumption]`);
+            explanation.push(`The fact was not explicitly set to TRUE, so it is assumed to be FALSE. Classical logic might consider its truth value 'unknown'.`);
         }
 
-        return new EvaluationResult(value, explanation);
+        return new EvaluationResult(value, explanation); // CHANGED to pass the array
     }
 
     getAtomicPredicates(): Set<string> {

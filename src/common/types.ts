@@ -10,7 +10,7 @@ import { DomainObject } from '../engine/DomainObject';
 export class EvaluationResult {
     constructor(
         public value: boolean,
-        public explanation: string,
+        public explanationLines: string[],
         // Optional fields for comparing with classical logic
         public isNonClassical: boolean = false,
         public classicalValue?: boolean 

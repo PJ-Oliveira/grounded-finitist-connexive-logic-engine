@@ -156,7 +156,7 @@ function handleCommand(line: string): void {
                     term.writeln(`\x1b[1mFinal Result:\x1b[0m ${resultOutput}`);
 
                     term.writeln("\x1b[1;36m-------------------- Derivation --------------------\x1b[0m");
-                    term.writeln(result.explanation);
+                    result.explanationLines.forEach(line => term.writeln(line));
                     term.writeln("\x1b[1;36m====================================================\x1b[0m");
                 } else {
                     term.writeln(`\x1b[1;31mError: Object '${parts[1]}' not found.\x1b[0m`);

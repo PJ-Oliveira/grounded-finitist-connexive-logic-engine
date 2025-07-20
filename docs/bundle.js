@@ -117,9 +117,9 @@ ${objectStates}`;
     "src/common/types.ts"() {
       "use strict";
       EvaluationResult = class {
-        constructor(value, explanation, isNonClassical = false, classicalValue) {
+        constructor(value, explanationLines, isNonClassical = false, classicalValue) {
           this.value = value;
-          this.explanation = explanation;
+          this.explanationLines = explanationLines;
           this.isNonClassical = isNonClassical;
           this.classicalValue = classicalValue;
         }
@@ -140,11 +140,12 @@ ${objectStates}`;
         evaluate(object) {
           const rawValue = object.getRawPredicateState(this.name);
           const value = rawValue === void 0 ? false : rawValue;
-          let explanation = `Fact '${this.name}' is ${value ? "TRUE" : "FALSE"} for object '${object.name}'`;
+          const explanation = [];
+          explanation.push(`Fact '${this.name}' is ${value ? "TRUE" : "FALSE"} for object '${object.name}'`);
           if (rawValue === void 0) {
-            explanation += `
-
-\x1B[36m[Heuristic: Closed-World Assumption]\x1B[0m The fact was not explicitly set to TRUE, so it is assumed to be FALSE. Classical logic might consider its truth value 'unknown'.`;
+            explanation.push(`
+[Heuristic: Closed-World Assumption]`);
+            explanation.push(`The fact was not explicitly set to TRUE, so it is assumed to be FALSE. Classical logic might consider its truth value 'unknown'.`);
           }
           return new EvaluationResult(value, explanation);
         }
@@ -296,26 +297,24 @@ ${objectStates}`;
           const isBoethiusViolation = classicalTruth && oppositeClassicalTruth;
           const finalValue = classicalTruth && isRelevant && isAristotleCoherent && !isBoethiusViolation;
           const isNonClassicalResult = finalValue !== classicalTruth;
-          let reason = `Classical: ${classicalTruth}, Relevant: ${isRelevant}, Aristotle Coherent: ${isAristotleCoherent}, Boethius Coherent: ${!isBoethiusViolation} -> Final: ${finalValue}`;
+          const explanationLines = [];
+          explanationLines.push(`Classical: ${classicalTruth}, Relevant: ${isRelevant}, Aristotle Coherent: ${isAristotleCoherent}, Boethius Coherent: ${!isBoethiusViolation} -> Final: ${finalValue}`);
           if (!isRelevant) {
-            reason += `
-
-\x1B[36m[Heuristic: Relevance Logic]\x1B[0m
-Implication failed. The consequent cannot introduce new topics (predicates) that were not present in the antecedent.`;
+            explanationLines.push(`
+[Heuristic: Relevance Logic]`);
+            explanationLines.push(`Implication failed. The consequent cannot introduce new topics (predicates) that were not present in the antecedent.`);
           }
           if (!isAristotleCoherent) {
-            reason += `
-
-\x1B[36m[Heuristic: Connexive Logic (Aristotle's Thesis)]\x1B[0m
-Implication failed. A proposition cannot be implied by its own negation (form: NOT P -> P).`;
+            explanationLines.push(`
+[Heuristic: Connexive Logic (Aristotle's Thesis)]`);
+            explanationLines.push(`Implication failed. A proposition cannot be implied by its own negation (form: NOT P -> P).`);
           }
           if (isBoethiusViolation) {
-            reason += `
-
-\x1B[36m[Heuristic: Connexive Logic (Boethius's Thesis)]\x1B[0m
-Implication failed. An antecedent cannot imply both a proposition and its negation (form: (A -> C) and (A -> NOT C)).`;
+            explanationLines.push(`
+[Heuristic: Connexive Logic (Boethius's Thesis)]`);
+            explanationLines.push(`Implication failed. An antecedent cannot imply both a proposition and its negation (form: (A -> C) and (A -> NOT C)).`);
           }
-          return new EvaluationResult(finalValue, reason, isNonClassicalResult, classicalTruth);
+          return new EvaluationResult(finalValue, explanationLines, isNonClassicalResult, classicalTruth);
         }
         getAtomicPredicates() {
           const combined = new Set(this.antecedent.getAtomicPredicates());
@@ -612,7 +611,7 @@ Implication failed. An antecedent cannot imply both a proposition and its negati
                 }
                 term.writeln(`\x1B[1mFinal Result:\x1B[0m ${resultOutput}`);
                 term.writeln("\x1B[1;36m-------------------- Derivation --------------------\x1B[0m");
-                term.writeln(result.explanation);
+                result.explanationLines.forEach((line2) => term.writeln(line2));
                 term.writeln("\x1B[1;36m====================================================\x1B[0m");
               } else {
                 term.writeln(`\x1B[1;31mError: Object '${parts[1]}' not found.\x1B[0m`);
